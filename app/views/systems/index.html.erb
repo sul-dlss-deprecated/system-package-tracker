@@ -1,0 +1,15 @@
+<h1>Systems</h1>
+
+<table>
+  <tr>
+    <th>Hostname</th>
+    <th>OS</th>
+  </tr>
+
+<% @systems.each do |system| %>
+  <tr>
+    <td><%= system.hostname %></td>
+    <td><%= system.os %></td>
+  </tr>
+<% end %>
+</table>
