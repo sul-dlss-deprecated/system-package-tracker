@@ -4,7 +4,7 @@ Rails.application.routes.draw do
   get 'advisories/index' => 'advisories#index'
 
   root 'display#index'
-  
+
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
 
