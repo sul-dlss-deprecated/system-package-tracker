@@ -12,29 +12,30 @@ class ImportController < ApplicationController
   def index
     package_types = %w(yum gem)
 
-    # Temporary testing -- assume a hostname.
-    hostname = 'test.stanford.edu'
+    Dir.glob('/tmp/packages/*.yaml').each do |yaml_file|
+      server_yaml = YAML.load(File.open(yaml_file))
 
-    # Get the host record and then clear any existing packages.
-    server = Server.find_or_create_by(hostname: hostname)
-    server.servers_to_packages.clear
+      # Get the host record and then clear any existing packages.
+      hostname = server_yaml['system']['hostname']
+      server = Server.find_or_create_by(hostname: hostname)
+      server.servers_to_packages.clear
+      server.os_release = server_yaml['system']['release']
+      server.save
 
-    # TODO: Stop assuming one file and instead open all files in a directory,
-    # one by one.
-    # Go through the yaml file for a server, adding any missing packages to
-    # the database and then associating them with the server.
-    server_packages = YAML.load(File.open('/tmp/servers.yaml'))
-    package_types.each do |type|
-      server_packages[type]['installed'].each_key do |pkg|
-        arch = server_packages[type]['installed'][pkg]['arch'] || 'none'
+      # Go through the yaml file for a server, adding any missing packages to
+      # the database and then associating them with the server.
+      package_types.each do |type|
+        server_yaml[type]['installed'].each_key do |pkg|
+          arch = server_yaml[type]['installed'][pkg]['arch'] || 'none'
 
-        # Go through each package version (gem can have multiple) to add and
-        # associate.
-        server_packages[type]['installed'][pkg]['version'].each do |version|
-          p = Package.find_or_create_by(name: pkg, version: version,
-                                        arch: arch, provider: type)
+          # Go through each package version (gem can have multiple) to add and
+          # associate.
+          server_yaml[type]['installed'][pkg]['version'].each do |version|
+            p = Package.find_or_create_by(name: pkg, version: version,
+                                          arch: arch, provider: type)
 
-          p.servers_to_packages.create(server_id: server.id)
+            p.servers_to_packages.create(server_id: server.id)
+          end
         end
       end
     end
