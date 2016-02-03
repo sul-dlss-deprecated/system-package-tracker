@@ -1,0 +1,2 @@
+module AdvisoriesHelper
+end
