@@ -32,13 +32,18 @@ class DisplayController < ApplicationController
         @report[server.hostname][provider][name]['version'] << package.version
 
         # See if there are any advisories for this package.
-        # TODO: Add more information aside from just the advisory name.
         package.advisories_to_packages.each do |advisory_map|
           advisory = Advisory.find(advisory_map.advisory_id)
           unless @report[server.hostname][provider][name].key?('advisories')
             @report[server.hostname][provider][name]['advisories'] = []
           end
-          @report[server.hostname][provider][name]['advisories'] << advisory.name
+          advisory_report = {}
+          advisory_report['name'] = advisory.name
+          advisory_report['synopsis'] = advisory.synopsis
+          advisory_report['issue_date'] = advisory.issue_date
+          advisory_report['kind'] = advisory.kind
+          advisory_report['severity'] = advisory.severity
+          @report[server.hostname][provider][name]['advisories'] << advisory_report
         end
       end
     end
@@ -49,5 +54,41 @@ class DisplayController < ApplicationController
   # show the servers with pending updates, the names and versions of those
   # files, and any advisories linked to those updates.
   def updates
+    @report = {}
+    Server.find_each do |server|
+
+      # Go through each package.  In some cases (gems) there may be multiple
+      # versions of a package on the machine.
+      packages = {}
+      server.servers_to_packages.each do |package_map|
+        package = Package.find(package_map.package_id)
+        name = package.name
+        provider = package.provider
+
+        # See if there are any advisories for this package.
+        advisories = []
+        package.advisories_to_packages.each do |advisory_map|
+          advisory = Advisory.find(advisory_map.advisory_id)
+
+          advisory_report = {}
+          advisory_report['name'] = advisory.name
+          advisory_report['synopsis'] = advisory.synopsis
+          advisory_report['issue_date'] = advisory.issue_date
+          advisory_report['kind'] = advisory.kind
+          advisory_report['severity'] = advisory.severity
+          advisories << advisory_report
+        end
+
+        unless advisories.empty?
+          unless packages.key?(package.name)
+            packages[package.name] = {}
+          end
+          packages[package.name][package.version] = advisories
+        end
+      end
+      unless packages.empty?
+        @report[server.hostname] = packages
+      end
+    end
   end
 end
