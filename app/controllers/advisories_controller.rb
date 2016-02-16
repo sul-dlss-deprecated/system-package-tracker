@@ -5,6 +5,8 @@ class AdvisoriesController < ApplicationController
   require 'net/http'
   require 'rexml/document'
   require 'yaml'
+  require 'rubygems'
+  require 'rpm'
 
   # TODO: This currrently only uses a source for CentOS.  Look into using
   # either Gemnasium or https://github.com/rubysec/ruby-advisory-db for
@@ -33,6 +35,15 @@ class AdvisoriesController < ApplicationController
         severity = 'Unknown'
       end
 
+      # Get all the package names at once to save as details.  We're going to
+      # go through them again later, but do this once now to save them with
+      # the normal record.  This field will only be to keep the information
+      # with the record for manual debugging.
+      packages = []
+      advisory.elements.each('packages') do |adv_package|
+        packages.push(adv_package.text)
+      end
+
       # Create the advisory in the database if it does not yet exist.
       adv = Advisory.find_or_create_by(name: advisory.name,
                                        description: advisory.attributes['description'],
@@ -41,7 +52,8 @@ class AdvisoriesController < ApplicationController
                                        kind: advisory.attributes['type'],
                                        synopsis: advisory.attributes['synopsis'],
                                        severity: severity,
-                                       os_family: 'centos')
+                                       os_family: 'centos',
+                                       fix_versions: packages.join("\n"))
 
       # Now link the advisory to any known packages.  We don't bother removing
       # old entries, since an advisory that affects version X should always
@@ -57,21 +69,14 @@ class AdvisoriesController < ApplicationController
         Package.where(name: package_name, arch: package_architecture,
                       provider: 'yum').find_each do |package|
 
-          # FIXME: Can't run the RPM gem on my laptop for lack of RPM libs.
-          # Once that is either working or I'm doing dev on another box,
-          # restore the commented-out parts.  Right now we just are flagging
-          # every version of a package as having that advisory, to make sure
-          # the general logic is sound.
-          #
           # Match the package's version against the version in the advisory,
           # associating the package and advisory only if the advisory needs
           # a later version of the package than this.
-          # require 'rpm'
-          # check_ver = RPM::Version.new(package.version)
-          # advisory_ver = RPM::Version.new(package_version + '-' + package_subver)
-          # if (advisory_ver.newer?(check_ver))
+          check_ver = RPM::Version.new(package.version)
+          advisory_ver = RPM::Version.new(package_version + '-' + package_subver)
+          if (advisory_ver.newer?(check_ver))
             adv.advisories_to_packages.create(package_id: package.id)
-          # end
+          end
         end
       end
     end
