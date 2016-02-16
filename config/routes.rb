@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   get 'display/index'
   get 'display/updates' => 'display#updates'
+  get 'display/advisories' => 'display#advisories'
   get 'import/index' => 'import#index'
   get 'advisories/index' => 'advisories#index'
 

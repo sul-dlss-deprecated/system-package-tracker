@@ -1,1 +1,16 @@
-<pre><%= @report.to_yaml %></pre>
+<table border="1">
+  <% @report.keys.sort.each do |hostname| %>
+    <% @report[hostname].keys.sort.each do |type| %>
+      <% @report[hostname][type].keys.sort.each do |package| %>
+        <% @report[hostname][type][package].sort.each do |version| %>
+          <tr>
+            <td><%= hostname %></td>
+            <td><%= type %></td>
+            <td><%= package %></td>
+            <td><%= version %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+</table>

@@ -1,0 +1,19 @@
+<table border="1">
+  <% @report.keys.sort.each do |hostname| %>
+    <% @report[hostname].keys.sort.each do |package| %>
+      <% @report[hostname][package].keys.sort.each do |version| %>
+        <% @report[hostname][package][version].each do |advisory| %>
+          <tr>
+            <td><%= hostname %></td>
+            <td><%= package %></td>
+            <td><%= version %></td>
+            <td><%= advisory['name'] %></td>
+            <td><%= advisory['issue_date'] %></td>
+            <td><%= advisory['severity'] %></td>
+            <td><%= advisory['fix_versions'] %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+</table>

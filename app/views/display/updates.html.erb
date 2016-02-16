@@ -1,0 +1,14 @@
+<table border="1">
+  <% @report.keys.sort.each do |hostname| %>
+    <% @report[hostname].keys.sort.each do |pkg_name| %>
+      <% @report[hostname][pkg_name].each do |package| %>
+        <tr>
+          <td><%= hostname %></td>
+          <td><%= pkg_name %></td>
+          <td><%= package['version'] %></td>
+          <td><%= package['provider'] %></td>
+        </tr>
+      <% end %>
+    <% end %>
+  <% end %>
+</table>
