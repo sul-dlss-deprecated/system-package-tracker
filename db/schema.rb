@@ -13,6 +13,9 @@
 
 ActiveRecord::Schema.define(version: 20160130001619) do
 
+  # These are extensions that must be enabled in order to support this database
+  enable_extension "plpgsql"
+
   create_table "advisories", force: :cascade do |t|
     t.string   "name"
     t.string   "description"
@@ -22,15 +25,16 @@ ActiveRecord::Schema.define(version: 20160130001619) do
     t.string   "synopsis"
     t.string   "severity"
     t.string   "os_family"
-    t.datetime "created_at",  null: false
-    t.datetime "updated_at",  null: false
+    t.text     "fix_versions"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
   end
 
-  add_index "advisories", ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true
+  add_index "advisories", ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true, using: :btree
 
   create_table "advisory_to_packages", force: :cascade do |t|
-    t.string   "package_id"
-    t.string   "advisory_id"
+    t.integer  "package_id"
+    t.integer  "advisory_id"
     t.datetime "created_at",  null: false
     t.datetime "updated_at",  null: false
   end
@@ -44,12 +48,13 @@ ActiveRecord::Schema.define(version: 20160130001619) do
     t.datetime "updated_at", null: false
   end
 
-  add_index "packages", ["name", "version", "arch", "provider"], name: "index_packages_on_name_and_version_and_arch_and_provider", unique: true
-  add_index "packages", ["name"], name: "index_packages_on_name"
+  add_index "packages", ["name", "version", "arch", "provider"], name: "index_packages_on_name_and_version_and_arch_and_provider", unique: true, using: :btree
+  add_index "packages", ["name"], name: "index_packages_on_name", using: :btree
 
   create_table "server_to_packages", force: :cascade do |t|
-    t.string   "server_id"
-    t.string   "package_id"
+    t.integer  "server_id"
+    t.integer  "package_id"
+    t.string   "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
@@ -58,10 +63,11 @@ ActiveRecord::Schema.define(version: 20160130001619) do
     t.string   "hostname"
     t.string   "os_family"
     t.string   "os_release"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "last_checkin"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
   end
 
-  add_index "servers", ["hostname"], name: "index_servers_on_hostname", unique: true
+  add_index "servers", ["hostname"], name: "index_servers_on_hostname", unique: true, using: :btree
 
 end
