@@ -49,11 +49,15 @@ class Report
           # Filter out fixed packages of everything but this package.  This
           # lets us see the version that has the fix.
           fixed = []
-          advisory.fix_versions.split("\n").each do |fixed_package|
-            m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(fixed_package)
-            next unless m[1] == package.name
-            next unless m[4] == package.arch
-            fixed.push(m[2] + '-' + m[3])
+          if advisory.os_family == 'centos'
+            advisory.fix_versions.split("\n").each do |fixed_package|
+              m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(fixed_package)
+              next unless m[1] == package.name
+              next unless m[4] == package.arch
+              fixed.push(m[2] + '-' + m[3])
+            end
+          else
+            fixed = advisory.fix_versions.split("\n")
           end
 
           # Convert to a hash to drop into our results structure.

@@ -34,7 +34,7 @@ class ImportController < ApplicationController
       # Get or create a host record.
       hostname = server_yaml['system']['hostname']
       server = save_server(hostname, server_yaml['system']['release'],
-	                       server_yaml['system']['lastrun'])
+	                         server_yaml['system']['lastrun'])
 
       # Go through the yaml file for a server, adding any missing packages to
       # the database and then associating them with the server.  Packages may
