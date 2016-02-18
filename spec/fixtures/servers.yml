@@ -1,0 +1,11 @@
+example:
+  hostname: example.stanford.edu
+  os_family: CentOS
+  os_release: 6
+  last_checkin: 2016-01-01 01:23:45
+
+test:
+  hostname: test.stanford.edu
+  os_family: CentOS
+  os_release: 7
+  last_checkin: 2016-02-02 01:23:45

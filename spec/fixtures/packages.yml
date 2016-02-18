@@ -1,0 +1,11 @@
+xen-old:
+  name: xen
+  version: 3.0.0
+  arch: x86_64
+  provider: yum
+
+xen-new:
+  name: xen
+  version: 4.0.0
+  arch: x86_64
+  provider: yum
