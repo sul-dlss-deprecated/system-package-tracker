@@ -18,6 +18,10 @@ class Import
       # Skip the meta item, the one thing in the XML that's not an advisory.
       next if advisory.name == 'meta'
 
+      # Any advisory lines that end in -X\d\d\d are all for Xen4CentOS, which
+      # we don't run and will give false flags.
+      next if /--X\d{3}$/.match(advisory.name)
+
       # Skip this record if it doesn't include a release we care about.
       packages = []
       advisory.elements.each('packages') do |adv_package|
