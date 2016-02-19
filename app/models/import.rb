@@ -18,7 +18,8 @@ class Import
       # Skip the meta item, the one thing in the XML that's not an advisory.
       next if advisory.name == 'meta'
 
-      # TODO: Skip advisories for old RHEL4-era.
+      # Skip this record if it doesn't include a release we care about.
+      next unless used_release?(advisory)
 
       adv = add_centos_advisory(advisory)
       advisory.elements.each('packages') do |adv_package|
@@ -40,7 +41,7 @@ class Import
       # Get or create a host record.
       hostname = server_yaml['system']['hostname']
       server = save_server(hostname, server_yaml['system']['release'],
-	                         server_yaml['system']['lastrun'])
+                           server_yaml['system']['lastrun'])
 
       # Add any missing packages to the database and then associating them
       # with the server.  Packages may be marked either installed or pending
@@ -219,6 +220,35 @@ class Import
         adv.advisories_to_packages.create(package_id: package.id)
       end
     end
+  end
+
+  # The centos advisory package includes an os_release field, but only one.
+  # At the same time it can have fixes for multiple releases.  Parse out each
+  # release to find the EL part of the R_M filename, and return a list of all
+  # relevant versions.
+  def used_release? (advisory)
+    valid_releases = [5, 6, 7]
+
+    advisory.elements.each('packages') do |adv_package|
+      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(adv_package.text)
+      package_name = m[1]
+      package_version = m[2]
+      package_subver = m[3]
+      package_architecture = m[4]
+
+      # Get the major release from the package name and see if it matches one
+      # of the versions we care about.  If we can't get the major release,
+      # assume that it matches.
+      if m = /\.(el|centos|rhel)(\d)/i.match(package_subver)
+        if valid_releases.include?(m[2].to_i)
+          return true
+        end
+      else
+        return true
+      end
+    end
+
+    return false
   end
 
 end
