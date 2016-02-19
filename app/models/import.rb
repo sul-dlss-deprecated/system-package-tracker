@@ -19,11 +19,16 @@ class Import
       next if advisory.name == 'meta'
 
       # Skip this record if it doesn't include a release we care about.
-      next unless used_release?(advisory)
-
-      adv = add_centos_advisory(advisory)
+      packages = []
       advisory.elements.each('packages') do |adv_package|
-        check_yum_package(adv, adv_package.text)
+        packages.push(adv_package.text)
+      end
+      next unless used_release?(packages)
+
+      # Add the advisory and then link to any affected packages.
+      adv = add_centos_advisory(advisory)
+      packages.each do |package|
+        check_yum_package(adv, package)
       end
     end
   end
@@ -201,8 +206,6 @@ class Import
   # parse out that name and find any packages with that name.  Check to see
   # which ones are before the patched version and mark any of those packages
   # as falling under the advisory.
-  #
-  # TODO: Skip if there are no patches for the current major version (ex: el6)
   def check_yum_package (adv, advisory_package)
     m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(advisory_package)
     package_name = m[1]
@@ -215,6 +218,15 @@ class Import
     Package.where(name: package_name, arch: package_architecture,
                   provider: 'yum').find_each do |package|
 
+      # Skip this package unless it's for the same major release as the
+      # advisory package.
+      package_release = centos_package_major_release(package.version)
+      if package_release
+        next unless used_release?([advisory_package], [package_release])
+      end
+
+      # And finally check to see if the package is older than the patched
+      # version from the advisory, associating them if not.
       check_ver = RPM::Version.new(package.version)
       if (advisory_ver.newer?(check_ver))
         adv.advisories_to_packages.create(package_id: package.id)
@@ -222,15 +234,24 @@ class Import
     end
   end
 
+  # Given a centos package version, parse out and return the major OS release
+  # it is meant for.  If the version doesn't include the information needed
+  # to figure that, return a 0.
+  def centos_package_major_release (version)
+    if m = /\.(el|centos|rhel)(\d)/i.match(version)
+      return m[2].to_i
+    else
+      return 0
+    end
+  end
+
   # The centos advisory package includes an os_release field, but only one.
   # At the same time it can have fixes for multiple releases.  Parse out each
   # release to find the EL part of the R_M filename, and return a list of all
   # relevant versions.
-  def used_release? (advisory)
-    valid_releases = [5, 6, 7]
-
-    advisory.elements.each('packages') do |adv_package|
-      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(adv_package.text)
+  def used_release? (packages, valid_releases = [5, 6, 7])
+    packages.each do |package|
+      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(package)
       package_name = m[1]
       package_version = m[2]
       package_subver = m[3]
@@ -239,13 +260,9 @@ class Import
       # Get the major release from the package name and see if it matches one
       # of the versions we care about.  If we can't get the major release,
       # assume that it matches.
-      if m = /\.(el|centos|rhel)(\d)/i.match(package_subver)
-        if valid_releases.include?(m[2].to_i)
-          return true
-        end
-      else
-        return true
-      end
+      release = centos_package_major_release(package_subver)
+      return true if release == 0
+      return true if valid_releases.include?(release)
     end
 
     return false
