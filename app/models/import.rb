@@ -175,7 +175,11 @@ class Import
   # to the database.
   def add_centos_advisory (advisory)
 
-    # TODO: Just return the record if the advisory already exists.
+    # Advisory data shouldn't change, so if the advisory already exists we can
+    # just return the existing record.
+    if Advisory.exists?(name: advisory.name)
+      return Advisory.find_by(name: advisory.name)
+    end
 
     # Many advisories don't have a set severity, so give a default.
     if advisory.attributes['severity']
