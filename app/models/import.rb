@@ -65,7 +65,6 @@ class Import
       server = save_server(hostname, server_yaml['system']['release'],
                            server_yaml['system']['lastrun'])
 
-      next
       # Add any missing packages to the database and then associating them
       # with the server.  Packages may be marked either installed or pending
       # (for upgrades not installed).  There can be multiple versions of a
