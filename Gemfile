@@ -25,6 +25,9 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 # The RPM gem is needed for version parsing.
 gem 'rpm'
 
+# The git gem is used to maintain a checkout of Ruby Gem advisories.
+gem 'git'
+
 # Access an IRB console on exception pages or by using <%= console %> in views
 gem 'web-console', '~> 2.0', group: :development
 

@@ -2,13 +2,13 @@ class Import
 
   require 'net/http'
   require 'rexml/document'
+  require 'git'
   require 'yaml'
   require 'rubygems'
   require 'rpm'
   require 'logger'
 
   SERVER_FILES  = '/var/lib/package-reports/*.yaml'
-  ADV_DIRECTORY = '/var/lib/ruby-advisory-db/gems'
   LOGFILE       = 'log/import.log'
   LOGLEVEL      = Logger::INFO
 
@@ -16,6 +16,10 @@ class Import
   PROXY_PORT    = 80
 
   CENTOS_ADV    = 'https://raw.githubusercontent.com/stevemeier/cefs/master/errata.latest.xml'
+
+  RUBY_ADV_GIT = 'https://github.com/rubysec/ruby-advisory-db.git'
+  REPORTS_DIR = '/home/reporting/'
+  RUBY_ADV_DIR = 'ruby-advisory-db'
 
   def centos_advisories
     # Parse the data and look up.  The file is formatted with every advisory
@@ -88,14 +92,14 @@ class Import
     end
   end
 
+  # Search the advisory directory, skipping advisories for gems we don't
+  # have installed, and then checking those that we do have installed for
+  # matching versions.
   def ruby_advisories
+    maintain_ruby_advisory_git()
 
-    # TODO: Actually run a git update on the advisory repo.
-
-    # Search the advisory directory, skipping advisories for gems we don't
-    # have installed, and then checking those that we do have installed for
-    # matching versions.
-    Dir.entries(ADV_DIRECTORY).sort.each do |gem|
+    advisory_dir = REPORTS_DIR + RUBY_ADV_DIR + '/gems'
+    Dir.entries(advisory_dir).sort.each do |gem|
       next if gem == '.' || gem == '..'
       packages = Package.where(name: gem, provider: 'gem')
       unless packages.count > 0
@@ -103,7 +107,7 @@ class Import
         next
       end
 
-      gemdir = "#{ADV_DIRECTORY}/#{gem}/"
+      gemdir = "#{advisory_dir}/#{gem}/"
       Dir.glob(gemdir + '*.yml').sort.each do |adv_file|
         advisory = YAML::load(File.open(adv_file))
 
@@ -300,6 +304,18 @@ class Import
       if (advisory_ver.newer?(check_ver))
         adv.advisories_to_packages.create(package_id: package.id)
       end
+    end
+  end
+
+  # Maintain the ruby advisory database checkout by pulling fresh content.
+  # If it does not yet exist, do an initial clone.
+  def maintain_ruby_advisory_git
+    checkout_dir = REPORTS_DIR + RUBY_ADV_DIR
+    if (Dir.exist?(checkout_dir))
+      git = Git.open(checkout_dir)
+      git.pull
+    else
+      git = Git.clone(RUBY_ADV_GIT, RUBY_ADV_DIR, :path => REPORTS_DIR)
     end
   end
 
