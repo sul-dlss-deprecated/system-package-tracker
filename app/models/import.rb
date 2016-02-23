@@ -12,6 +12,11 @@ class Import
   LOGFILE       = 'log/import.log'
   LOGLEVEL      = Logger::INFO
 
+  PROXY_ADDR    = 'swp.stanford.edu'
+  PROXY_PORT    = 80
+
+  CENTOS_ADV    = 'https://raw.githubusercontent.com/stevemeier/cefs/master/errata.latest.xml'
+
   def centos_advisories
     # Parse the data and look up.  The file is formatted with every advisory
     # under <opt>.
@@ -169,11 +174,10 @@ class Import
   # CentOS-Announce archives.  If this ever stops being maintained, then
   # we would need to look at another source/using his scripts for ourselves.
   def get_centos_advisories
-    # TODO: We need to use the proxy here.  wget is using, but not us.
-    xml_data = File.new('/tmp/errata.latest.xml')
-    return xml_data.read
-#    url = 'http://cefs.steve-meier.de/errata.latest.xml'
-#    xml_data = Net::HTTP.get_response(URI.parse(url)).body
+    uri = URI(CENTOS_ADV)
+    Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(uri.host, uri.port, :use_ssl => 1) do |http|
+      return http.get(uri.path).body
+    end
   end
 
   # Given a centos package version, parse out and return the major OS release
