@@ -1,15 +1,16 @@
 class Import
 
-  # TODO: Add logging for all of our changes.
-
   require 'net/http'
   require 'rexml/document'
   require 'yaml'
   require 'rubygems'
   require 'rpm'
+  require 'logger'
 
   SERVER_FILES  = '/var/lib/package-reports/*.yaml'
   ADV_DIRECTORY = '/var/lib/ruby-advisory-db/gems'
+  LOGFILE       = 'log/import.log'
+  LOGLEVEL      = Logger::INFO
 
   def centos_advisories
     # Parse the data and look up.  The file is formatted with every advisory
@@ -30,7 +31,10 @@ class Import
       advisory.elements.each('packages') do |adv_package|
         packages.push(adv_package.text)
       end
-      next unless used_release?(packages)
+      unless used_release?(packages)
+        log.info("CentOS Advisories: Skipping #{advisory.name}, not for any OS releases we use")
+        next
+      end
 
       # Add the advisory and then link to any affected packages.
       adv = add_centos_advisory(advisory)
@@ -46,14 +50,17 @@ class Import
     package_types = %w(yum gem)
     status_types = %w(installed pending)
 
-    Dir.glob(SERVER_FILES).each do |yaml_file|
+    Dir.glob(SERVER_FILES).sort.each do |yaml_file|
       server_yaml = YAML.load(File.open(yaml_file))
 
       # Get or create a host record.
+      # TODO: For log and change clarity, stop clearing all packages and do a
+      #       reconcile instead.
       hostname = server_yaml['system']['hostname']
       server = save_server(hostname, server_yaml['system']['release'],
                            server_yaml['system']['lastrun'])
 
+      next
       # Add any missing packages to the database and then associating them
       # with the server.  Packages may be marked either installed or pending
       # (for upgrades not installed).  There can be multiple versions of a
@@ -67,6 +74,7 @@ class Import
               p = Package.find_or_create_by(name: pkg, version: version,
                                             arch: arch, provider: type)
 
+              log.info("Servers: Linked #{server.hostname} to #{pkg} #{version}")
               p.servers_to_packages.create(server_id: server.id,
                                            status: status)
             end
@@ -83,13 +91,16 @@ class Import
     # Search the advisory directory, skipping advisories for gems we don't
     # have installed, and then checking those that we do have installed for
     # matching versions.
-    Dir.foreach(ADV_DIRECTORY) do |gem|
+    Dir.entries(ADV_DIRECTORY).sort.each do |gem|
       next if gem == '.' || gem == '..'
       packages = Package.where(name: gem, provider: 'gem')
-      next unless packages.count > 0
+      unless packages.count > 0
+        log.info("Ruby advisories: Skipping #{gem}, no local installs")
+        next
+      end
 
       gemdir = "#{ADV_DIRECTORY}/#{gem}/"
-      Dir.glob(gemdir + '*.yml') do |adv_file|
+      Dir.glob(gemdir + '*.yml').sort.each do |adv_file|
         advisory = YAML::load(File.open(adv_file))
 
         # The advisories pull both from CVEs and from OSVDB.  In some cases
@@ -121,6 +132,7 @@ class Import
         next if patched_versions.count == 0
         fix_versions = patched_versions.join("\n")
 
+        log.info("Ruby advisories: Adding advisory #{name} for #{gem}")
         adv = Advisory.find_or_create_by(name: name,
                                          description: description,
                                          issue_date: issue_date,
@@ -139,11 +151,13 @@ class Import
           advisory['patched_versions'].each do |version|
             pv = Gem::Version.new(package.version)
             if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
+              log.info("Ruby advisories: Skipping link of #{gem}/#{name} to #{package.name} #{package.version}: patch satisfied by #{version}")
               matched = 1
               break
             end
           end
           unless matched == 1
+            log.info("Ruby advisories: Linked #{gem}/#{name} to #{package.name} #{package.version}")
             adv.advisories_to_packages.create(package_id: package.id)
           end
         end
@@ -209,6 +223,7 @@ class Import
     server.servers_to_packages.clear
     server.save
 
+    log.info("Servers: Added/updated #{server.hostname}")
     return server
   end
 
@@ -219,6 +234,7 @@ class Import
     # Advisory data shouldn't change, so if the advisory already exists we can
     # just return the existing record.
     if Advisory.exists?(name: advisory.name)
+      log.info("CentOS Advisories: #{advisory.name} already exists")
       return Advisory.find_by(name: advisory.name)
     end
 
@@ -248,6 +264,7 @@ class Import
                                      severity: severity,
                                      os_family: 'centos',
                                      fix_versions: packages.join("\n"))
+    log.info("CentOS Advisories: Created #{advisory.name}")
     return adv
   end
 
@@ -281,6 +298,14 @@ class Import
         adv.advisories_to_packages.create(package_id: package.id)
       end
     end
+  end
+
+  def log
+    if @logger.nil?
+      @logger = Logger.new(LOGFILE, shift_age = 'monthly')
+      @logger.level = LOGLEVEL
+    end
+    @logger
   end
 
 end
