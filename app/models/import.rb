@@ -8,6 +8,9 @@ class Import
   require 'rubygems'
   require 'rpm'
 
+  SERVER_FILES  = '/var/lib/package-reports/*.yaml'
+  ADV_DIRECTORY = '/var/lib/ruby-advisory-db/gems'
+
   def centos_advisories
     # Parse the data and look up.  The file is formatted with every advisory
     # under <opt>.
@@ -42,9 +45,8 @@ class Import
   def servers
     package_types = %w(yum gem)
     status_types = %w(installed pending)
-    server_files = '/var/lib/package-reports/*.yaml'
 
-    Dir.glob(server_files).each do |yaml_file|
+    Dir.glob(SERVER_FILES).each do |yaml_file|
       server_yaml = YAML.load(File.open(yaml_file))
 
       # Get or create a host record.
@@ -75,18 +77,18 @@ class Import
   end
 
   def ruby_advisories
-    adv_directory = '/var/lib/ruby-advisory-db/gems'
 
     # TODO: Actually run a git update on the advisory repo.
 
     # Search the advisory directory, skipping advisories for gems we don't
     # have installed, and then checking those that we do have installed for
     # matching versions.
-    Dir.foreach(adv_directory) do |gem|
-      installed = Package.where(name: gem, provider: 'gem')
-      next unless installed.count > 0
+    Dir.foreach(ADV_DIRECTORY) do |gem|
+      next if gem == '.' || gem == '..'
+      packages = Package.where(name: gem, provider: 'gem')
+      next unless packages.count > 0
 
-      gemdir = "#{adv_directory}/#{gem}/"
+      gemdir = "#{ADV_DIRECTORY}/#{gem}/"
       Dir.glob(gemdir + '*.yml') do |adv_file|
         advisory = YAML::load(File.open(adv_file))
 
@@ -129,20 +131,69 @@ class Import
                                          os_family: os_family,
                                          fix_versions: fix_versions)
 
-        # Check each installed package with this name to see if it is
-        # affected by the advisory.  This uses gem formatted requirement
-        # strings, so use that to parse if the packages match.
-        installed.each do |package|
+        # Check each package with this name to see if it is affected by the
+        # advisory.  This uses gem formatted requirement strings, so use that
+        # to parse if the packages match.
+        packages.each do |package|
+          matched = 0
           advisory['patched_versions'].each do |version|
             pv = Gem::Version.new(package.version)
-            unless Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
-              adv.advisories_to_packages.create(package_id: package.id)
+            if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
+              matched = 1
               break
             end
+          end
+          unless matched == 1
+            adv.advisories_to_packages.create(package_id: package.id)
           end
         end
       end
     end
+  end
+
+  # This URL posts CentOS errata for Spacewalk, by parsing the
+  # CentOS-Announce archives.  If this ever stops being maintained, then
+  # we would need to look at another source/using his scripts for ourselves.
+  def get_centos_advisories
+    # TODO: We need to use the proxy here.  wget is using, but not us.
+    xml_data = File.new('/tmp/errata.latest.xml')
+    return xml_data.read
+#    url = 'http://cefs.steve-meier.de/errata.latest.xml'
+#    xml_data = Net::HTTP.get_response(URI.parse(url)).body
+  end
+
+  # Given a centos package version, parse out and return the major OS release
+  # it is meant for.  If the version doesn't include the information needed
+  # to figure that, return a 0.
+  def centos_package_major_release (version)
+    if m = /\.(el|centos|rhel)(\d)/i.match(version)
+      return m[2].to_i
+    else
+      return 0
+    end
+  end
+
+  # The centos advisory package includes an os_release field, but only one.
+  # At the same time it can have fixes for multiple releases.  Parse out each
+  # release to find the EL part of the R_M filename, and return a list of all
+  # relevant versions.
+  def used_release? (packages, valid_releases = [5, 6, 7])
+    packages.each do |package|
+      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(package)
+      package_name = m[1]
+      package_version = m[2]
+      package_subver = m[3]
+      package_architecture = m[4]
+
+      # Get the major release from the package name and see if it matches one
+      # of the versions we care about.  If we can't get the major release,
+      # assume that it matches.
+      release = centos_package_major_release(package_subver)
+      return true if release == 0
+      return true if valid_releases.include?(release)
+    end
+
+    return false
   end
 
   private
@@ -159,16 +210,6 @@ class Import
     server.save
 
     return server
-  end
-
-  # This URL posts CentOS errata for Spacewalk, by parsing the
-  # CentOS-Announce archives.  If this ever stops being maintained, then
-  # we would need to look at another source/using his scripts for ourselves.
-  def get_centos_advisories
-    # TODO: We need to use the proxy here.  wget is using, but not us.
-    xml_data = File.new('/tmp/errata.latest.xml')
-#    url = 'http://cefs.steve-meier.de/errata.latest.xml'
-#    xml_data = Net::HTTP.get_response(URI.parse(url)).body
   end
 
   # Take an advisory record from the centos errata, parse it out, and then add
@@ -240,40 +281,6 @@ class Import
         adv.advisories_to_packages.create(package_id: package.id)
       end
     end
-  end
-
-  # Given a centos package version, parse out and return the major OS release
-  # it is meant for.  If the version doesn't include the information needed
-  # to figure that, return a 0.
-  def centos_package_major_release (version)
-    if m = /\.(el|centos|rhel)(\d)/i.match(version)
-      return m[2].to_i
-    else
-      return 0
-    end
-  end
-
-  # The centos advisory package includes an os_release field, but only one.
-  # At the same time it can have fixes for multiple releases.  Parse out each
-  # release to find the EL part of the R_M filename, and return a list of all
-  # relevant versions.
-  def used_release? (packages, valid_releases = [5, 6, 7])
-    packages.each do |package|
-      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(package)
-      package_name = m[1]
-      package_version = m[2]
-      package_subver = m[3]
-      package_architecture = m[4]
-
-      # Get the major release from the package name and see if it matches one
-      # of the versions we care about.  If we can't get the major release,
-      # assume that it matches.
-      release = centos_package_major_release(package_subver)
-      return true if release == 0
-      return true if valid_releases.include?(release)
-    end
-
-    return false
   end
 
 end
