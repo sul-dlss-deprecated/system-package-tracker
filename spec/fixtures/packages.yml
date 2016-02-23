@@ -1,10 +1,12 @@
 xen-old:
+  id: 1
   name: xen
   version: 3.0.0-1.el5
   arch: x86_64
   provider: yum
 
 xen-new:
+  id: 2
   name: xen
   version: 4.0.0-1.el5
   arch: x86_64
@@ -12,18 +14,21 @@ xen-new:
 
 # Should be affected by three advisories.
 activerecord-old:
+  id: 3
   name: activerecord
   version: 4.1.0
   provider: gem
 
 # Should be affected by no advisories.
 activerecord-new:
+  id: 4
   name: activerecord
   version: 5.0.1
   provider: gem
 
 # Should be be affected by one advisory.
 rest-client:
+  id: 5
   name: rest-client
   version: 1.5.0
   provider: gem

@@ -1,10 +1,12 @@
 example:
+  id: 1
   hostname: example.stanford.edu
   os_family: CentOS
   os_release: 6
   last_checkin: 2016-01-01 01:23:45
 
 test:
+  id: 2
   hostname: test.stanford.edu
   os_family: CentOS
   os_release: 7
