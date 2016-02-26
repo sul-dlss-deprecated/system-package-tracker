@@ -220,6 +220,3 @@ DEPENDENCIES
   sdoc (~> 0.4.0)
   sqlite3
   web-console (~> 2.0)
-
-BUNDLED WITH
-   1.11.2
