@@ -1,6 +1,5 @@
 class ReportMailer < ApplicationMailer
-  #  default to: 'sul-sysadmin-rpts@lists.stanford.edu'
-  default to: 'jonrober@stanford.edu'
+  default to: 'sul-sysadmin-rpts@lists.stanford.edu'
 
   def advisory_email(report)
     @report = report
