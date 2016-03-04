@@ -35,14 +35,20 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories (hostname='')
+  def advisories (hostname='', search_package='')
 
     report = {}
     Server.all.order('hostname').each do |server|
-      next if hostname != '' && server.hostname != hostname
+      if hostname != ''
+        next unless /#{hostname}/.match(server.hostname)
+      end
 
       packages = {}
       server.installed_packages.order('name').each do |package|
+        if search_package != ''
+          next unless /#{search_package}/.match(package.name)
+        end
+
         advisories = []
         package.advisories.order('name').uniq.each do |advisory|
 
@@ -78,6 +84,44 @@ class Report
       # And if there were any packages, add them to the server.
       unless packages.empty?
         report[server.hostname] = packages
+      end
+    end
+
+    return report
+  end
+
+  # Create a report on all servers that have advisories.  This should show
+  # the servers with advisories, the names and versions of the affected
+  # packages, and the version required to fix the advisory.  This returns a
+  # hash that can be used for web or text display.
+  def advisories_by_package (search_package='')
+
+    report = {}
+    Package.find_each do |package|
+      if search_package != ''
+        next unless /#{search_package}/.match(package.name)
+      end
+
+      next if package.servers.count == 0
+      next if package.advisories.count == 0
+
+      name = package.name
+      version = package.version
+      arch = package.arch
+      provider = package.provider
+      report[name] = {} unless report.key?(name)
+      report[name][version] = {} unless report[name].key?(version)
+      report[name][version][arch] = {} unless report[name][version].key?(arch)
+      report[name][version][arch][provider] = {} unless report[name][version][arch].key?(name)
+
+      # Add the number of advisories for this package/version.
+      advisories = package.advisories.count
+      report[name][version][arch][provider]['advisories'] = advisories
+
+      # Add the list of servers that have this package installed.
+      report[name][version][arch][provider]['servers'] = []
+      package.servers.each do |server|
+        report[name][version][arch][provider]['servers'].push(server.hostname)
       end
     end
 

@@ -2,10 +2,12 @@ namespace :report do
   desc 'Report on total vulnerabilities per server'
   task :vulnerabilities, [:output_type] => :environment do |t, args|
     output_type = args[:output_type] || 'stdout'
+    hostname = ENV['SEARCH_HOST'] || ''
+    package_search = ENV['PACKAGE'] || ''
 
     # Get the report data structure.  We'll build this into an output string
     # that we'll either print to stdout or email.
-    report = Report.new.advisories()
+    report = Report.new.advisories(hostname, package_search)
     output = ''
 
     # Iterate through the report to find unique vulnerabilties and vulnerable
