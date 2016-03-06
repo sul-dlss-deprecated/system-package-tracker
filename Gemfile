@@ -7,6 +7,7 @@ gem 'rails', '4.2.5.2'
 # Database setup.
 gem 'sqlite3'
 gem 'pg'
+gem 'activerecord-import'
 
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 gem 'jbuilder', '~> 2.0'
@@ -18,9 +19,6 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 
 # Use Unicorn as the app server
 # gem 'unicorn'
-
-# Use Capistrano for deployment
-# gem 'capistrano-rails', group: :development
 
 # The RPM gem is needed for version parsing.
 gem 'rpm'
