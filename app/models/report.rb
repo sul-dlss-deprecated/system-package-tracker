@@ -4,13 +4,13 @@ class Report
   # given an optional hostname, limit the search to that one host.
   def installed_packages (hostname='')
     report = {}
-    Server.all.order('hostname').each do |server|
+    Server.all.each do |server|
       next if hostname != '' && server.hostname != hostname
       report[server.hostname] = {}
 
       # Go through each package.  In some cases (gems) there may be multiple
       # versions of a package on the machine.
-      server.installed_packages.order('name').each do |package|
+      server.installed_packages.each do |package|
         name = package.name
         provider = package.provider
 
@@ -38,38 +38,50 @@ class Report
   def advisories (hostname='', search_package='')
 
     report = {}
-    Server.all.order('hostname').each do |server|
+    package_cache = {}
+    Server.all.each do |server|
       if hostname != ''
         next unless /#{hostname}/.match(server.hostname)
       end
 
       packages = {}
-      server.installed_packages.order('name').each do |package|
+      server.installed_packages.each do |package|
         if search_package != ''
           next unless /#{search_package}/.match(package.name)
         end
 
+        name = package.name
+        version = package.version
+        arch = package.arch
+        provider = package.provider
+
         advisories = []
-        package.advisories.order('name').uniq.each do |advisory|
+        pkey = name + ' ' + version + ' ' + arch + ' ' + provider
+        if package_cache.key?(pkey)
+          advisories = package_cache[pkey]
+        else
+          package.advisories.uniq.each do |advisory|
 
-          # Filter out fixed packages of everything but this package.  This
-          # lets us see the version that has the fix.
-          fixed = []
-          if advisory.os_family == 'centos'
-            advisory.fix_versions.split("\n").each do |fixed_package|
-              m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(fixed_package)
-              next unless m[1] == package.name
-              next unless m[4] == package.arch
-              fixed.push(m[2] + '-' + m[3])
+            # Filter out fixed packages of everything but this package.  This
+            # lets us see the version that has the fix.
+            fixed = []
+            if advisory.os_family == 'centos'
+              advisory.fix_versions.split("\n").each do |fixed_package|
+                m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(fixed_package)
+                next unless m[1] == package.name
+                next unless m[4] == package.arch
+                fixed.push(m[2] + '-' + m[3])
+              end
+            else
+              fixed = advisory.fix_versions.split("\n")
             end
-          else
-            fixed = advisory.fix_versions.split("\n")
-          end
 
-          # Convert to a hash to drop into our results structure.
-          advisory_report = advisory.as_json
-          advisory_report['fix_versions_filtered'] = fixed.join(" ")
-          advisories << advisory_report
+            # Convert to a hash to drop into our results structure.
+            advisory_report = advisory.as_json
+            advisory_report['fix_versions_filtered'] = fixed.join(" ")
+            advisories << advisory_report
+          end
+          package_cache[pkey] = advisories
         end
 
         # Now add any advisories to the record for this package/version.
