@@ -206,15 +206,20 @@ class Import
         fix_versions = patched_versions.join("\n")
 
         log.info("Ruby advisories: Adding advisory #{name} for #{gem}")
-        adv = Advisory.find_or_create_by(name: name,
-                                         description: description,
-                                         issue_date: issue_date,
-                                         references: references,
-                                         kind: kind,
-                                         synopsis: synopsis,
-                                         severity: severity,
-                                         os_family: os_family,
-                                         fix_versions: fix_versions)
+        adv = nil
+        if Advisory.exists?(name: name, os_family: os_family)
+          adv = Advisory.find_by(name: name, os_family: os_family)
+        else
+          adv = Advisory.create(name: name,
+                                description: description,
+                                issue_date: issue_date,
+                                references: references,
+                                kind: kind,
+                                synopsis: synopsis,
+                                severity: severity,
+                                os_family: os_family,
+                                fix_versions: fix_versions)
+        end
 
         # Check each package with this name to see if it is affected by the
         # advisory.  This uses gem formatted requirement strings, so use that
