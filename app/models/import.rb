@@ -253,6 +253,13 @@ class Import
     advisories = get_rhel_advisories()
     advisories.sort.each do |fname|
       advisory = parse_cvrf(fname)
+      next if advisory.empty?
+
+      # Log a note about any advisories that we could not get packages from.
+      if advisory['packages'] == nil || advisory['packages'].empty?
+        log.info("RHEL Advisories: No packages listed in #{fname}")
+        next
+      end
 
       # Skip this record if it doesn't include a release we care about.
       unless used_release?(advisory['packages'])
@@ -312,18 +319,24 @@ class Import
   # relevant versions.
   def used_release? (packages, valid_releases = [5, 6, 7])
     packages.each do |package|
-      m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(package)
-      package_name = m[1]
-      package_version = m[2]
-      package_subver = m[3]
-      package_architecture = m[4]
+      if m = /^(.+)-([^-]+)-([^-]+)\.(\w+)\.rpm$/.match(package)
+        package_name = m[1]
+        package_version = m[2]
+        package_subver = m[3]
+        package_architecture = m[4]
 
-      # Get the major release from the package name and see if it matches one
-      # of the versions we care about.  If we can't get the major release,
-      # assume that it matches.
-      release = centos_package_major_release(package_subver)
-      return true if release == 0
-      return true if valid_releases.include?(release)
+        # Get the major release from the package name and see if it matches one
+        # of the versions we care about.  If we can't get the major release,
+        # assume that it matches.
+        release = centos_package_major_release(package_subver)
+        return true if release == 0
+        return true if valid_releases.include?(release)
+
+      # If we couldn't parse the package name, it's a weirder version that
+      # doesn't have the normal subversion info.  Just assume that it matches.
+      else
+        return true
+      end
     end
 
     return false
@@ -336,34 +349,39 @@ class Import
 
     # Get basic simple text about the advisory.
     advisory = {}
-    advisory['description'] = @doc.at_xpath('//DocumentTitle').content
-    advisory['name'] = @doc.at_xpath('//DocumentTracking/Identification/ID').content
-    advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
-    advisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
-    advisory['kind'] = @doc.at_xpath('//DocumentType').content
-    advisory['os_family'] = 'RHEL'
+    begin
+      advisory['description'] = @doc.at_xpath('//DocumentTitle').content
+      advisory['name'] = @doc.at_xpath('//DocumentTracking/Identification/ID').content
+      advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
+      advisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
+      advisory['kind'] = @doc.at_xpath('//DocumentType').content
+      advisory['os_family'] = 'RHEL'
 
-    # There can be multiple references and synopses, but they'll usually be the
-    # exact same item.  For our purposes we just want to pick the first.
-    advisory['reference'] = @doc.xpath("//DocumentReferences/Reference[@Type='Self']/URL").first.content
-    advisory['synopsis'] = @doc.xpath("//Vulnerability/Notes/Note[@Title='Vulnerability Description']").first.content
+      # There can be multiple references and synopses, but they'll usually be
+      # the exact same item.  For our purposes we just want to pick the first.
+      advisory['reference'] = @doc.xpath("//DocumentReferences/Reference[@Type='Self']/URL").first.content
+      advisory['synopsis'] = @doc.xpath("//Vulnerability/Notes/Note[@Title='Vulnerability Description']").first.content
 
-    # Each advisory may cover one or more CVEs.
-    # TODO: Field for CVEs
-    advisory['cves'] = []
-    @doc.xpath("//Vulnerability/CVE").each do |cve|
-      advisory['cves'] << cve.content
-    end
-
-    # Lastly, find and parse out all of the packages that will fix this advisory.
-    advisory['packages'] = []
-    @doc.xpath('//ProductStatuses').each do |product|
-      next unless product['Type'] = 'Fixed'
-      product.xpath('//ProductStatuses/Status/ProductID').each do |package|
-        formatted = parse_rhel_package(package.content)
-        next if formatted == ''
-        advisory['packages'] << formatted
+      # Each advisory may cover one or more CVEs.
+      # TODO: Field for CVEs
+      advisory['cves'] = []
+      @doc.xpath("//Vulnerability/CVE").each do |cve|
+        advisory['cves'] << cve.content
       end
+
+      # Lastly, find and parse out all of the packages that will fix this
+      # advisory.  Expand any source packages into all the archs we use.
+      packages = []
+      @doc.xpath('//ProductTree/Branch[@Type="Product Version"]').each do |pv|
+        pv.xpath('//ProductTree/Branch/FullProductName').each do |p|
+          expand_rhel_src(p.content).each do |package|
+            packages << package
+          end
+        end
+      end
+      advisory['packages'] = packages.uniq
+    rescue NoMethodError
+      log.info("RHEL Advisories: could not parse #{fname}")
     end
 
     return advisory
@@ -463,6 +481,7 @@ class Import
     package_architecture = m[4]
     return nil if package_architecture == 'src'
 
+    # TODO: Need to have a difference between RHEL and Centos versions.
     advisory_ver = RPM::Version.new(package_version + '-' + package_subver)
     Package.where(name: package_name, arch: package_architecture,
                   provider: 'yum').find_each do |package|
@@ -510,6 +529,20 @@ class Import
     return package
   end
 
+  # The RHEL cvrf files seem to use the .src.rpm in some cases where they mean
+  # that an update applies to all of the architectures for this update.  See
+  # if the given RPM is for a source package and if so, replace with the x86_64
+  # and i386 versions.
+  def expand_rhel_src (package)
+    if m = /^(.+)\.src\.rpm$/.match(package)
+      packages = [m[1] + '.x86_64.rpm', m[1] + '.i386.rpm']
+      return packages
+    else
+      return [package]
+    end
+  end
+
+  # Wrapper for doing logging of our import statuses for debugging.
   def log
     if @logger.nil?
       @logger = Logger.new(LOGFILE, shift_age = 'monthly')
