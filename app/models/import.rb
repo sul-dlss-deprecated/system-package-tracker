@@ -339,7 +339,7 @@ class Import
     advisory['description'] = @doc.at_xpath('//DocumentTitle').content
     advisory['name'] = @doc.at_xpath('//DocumentTracking/Identification/ID').content
     advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
-    iadvisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
+    advisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
     advisory['kind'] = @doc.at_xpath('//DocumentType').content
     advisory['os_family'] = 'RHEL'
 
