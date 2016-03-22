@@ -255,14 +255,14 @@ class Import
       advisory = parse_cvrf(fname)
 
       # Skip this record if it doesn't include a release we care about.
-      unless used_release?(packages)
-        log.info("RHEL Advisories: Skipping #{advisory.name}, not for any OS releases we use")
+      unless used_release?(advisory['packages'])
+        log.info("RHEL Advisories: Skipping #{advisory['name']}, not for any OS releases we use")
         next
       end
 
       # Add the advisory and then link to any affected packages.
       adv = add_rhel_advisory(advisory)
-      packages.each do |package|
+      advisory['packages'].each do |package|
         check_yum_package(adv, package)
       end
 
