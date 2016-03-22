@@ -1,8 +1,10 @@
 class Import
 
   require 'net/http'
+  require 'nokogiri'
   require 'rexml/document'
   require 'git'
+  require 'find'
   require 'yaml'
   require 'rubygems'
   require 'rpm'
@@ -23,6 +25,7 @@ class Import
   RUBY_ADV_GIT = 'https://github.com/rubysec/ruby-advisory-db.git'
   REPORTS_DIR = '/home/reporting/'
   RUBY_ADV_DIR = 'ruby-advisory-db'
+  RHEL_ADV_DIR = 'rhel-cvrf'
 
   def centos_advisories
     # Parse the data and look up.  The file is formatted with every advisory
@@ -243,6 +246,29 @@ class Import
     end
   end
 
+  # Search the advisory directory, skipping advisories for gems we don't
+  # have installed, and then checking those that we do have installed for
+  # matching versions.
+  def rhel_advisories
+    advisories = get_rhel_advisories()
+    advisories.sort.each do |fname|
+      advisory = parse_cvrf(fname)
+
+      # Skip this record if it doesn't include a release we care about.
+      unless used_release?(packages)
+        log.info("RHEL Advisories: Skipping #{advisory.name}, not for any OS releases we use")
+        next
+      end
+
+      # Add the advisory and then link to any affected packages.
+      adv = add_rhel_advisory(advisory)
+      packages.each do |package|
+        check_yum_package(adv, package)
+      end
+
+    end
+  end
+
   # This URL posts CentOS errata for Spacewalk, by parsing the
   # CentOS-Announce archives.  If this ever stops being maintained, then
   # we would need to look at another source/using his scripts for ourselves.
@@ -251,6 +277,22 @@ class Import
     Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(uri.host, uri.port, :use_ssl => 1) do |http|
       return http.get(uri.path).body
     end
+  end
+
+  # Refresh and get a list of all RHEL advisories.  These are posted on RH's
+  # website as cvrf files.
+  def get_rhel_advisories
+    # TODO: Refresh files.
+
+    advisory_dir = REPORTS_DIR + RHEL_ADV_DIR
+    advisories = []
+    Find.find(advisory_dir) do |path|
+      next unless File.file?(path)
+      next unless /\.xml$/.match(path)
+      advisories << path
+    end
+
+    return advisories
   end
 
   # Given a centos package version, parse out and return the major OS release
@@ -285,6 +327,46 @@ class Import
     end
 
     return false
+  end
+
+  # Given a cvrf file, attempt to parse it and return the data.
+  def parse_cvrf (fname)
+    @doc = Nokogiri::XML(File.read(fname))
+    @doc.remove_namespaces!
+
+    # Get basic simple text about the advisory.
+    advisory = {}
+    advisory['description'] = @doc.at_xpath('//DocumentTitle').content
+    advisory['name'] = @doc.at_xpath('//DocumentTracking/Identification/ID').content
+    advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
+    iadvisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
+    advisory['kind'] = @doc.at_xpath('//DocumentType').content
+    advisory['os_family'] = 'RHEL'
+
+    # There can be multiple references and synopses, but they'll usually be the
+    # exact same item.  For our purposes we just want to pick the first.
+    advisory['reference'] = @doc.xpath("//DocumentReferences/Reference[@Type='Self']/URL").first.content
+    advisory['synopsis'] = @doc.xpath("//Vulnerability/Notes/Note[@Title='Vulnerability Description']").first.content
+
+    # Each advisory may cover one or more CVEs.
+    # TODO: Field for CVEs
+    advisory['cves'] = []
+    @doc.xpath("//Vulnerability/CVE").each do |cve|
+      advisory['cves'] << cve.content
+    end
+
+    # Lastly, find and parse out all of the packages that will fix this advisory.
+    advisory['packages'] = []
+    @doc.xpath('//ProductStatuses').each do |product|
+      next unless product['Type'] = 'Fixed'
+      product.xpath('//ProductStatuses/Status/ProductID').each do |package|
+        formatted = parse_rhel_package(package.content)
+        next if formatted == ''
+        advisory['packages'] << formatted
+      end
+    end
+
+    return advisory
   end
 
   private
@@ -345,6 +427,30 @@ class Import
     return adv
   end
 
+  # Take advisory data from the RHEL cvrf advisories and then add it to the
+  # database.
+  def add_rhel_advisory (advisory)
+
+    # Advisory data shouldn't change, so if the advisory already exists we can
+    # just return the existing record.
+    if Advisory.exists?(name: advisory['name'])
+      log.info("RHEL Advisories: #{advisory['name']} already exists")
+      return Advisory.find_by(name: advisory['name'])
+    end
+
+    adv = Advisory.find_or_create_by(name: advisory['name'],
+                                     description: advisory['description'],
+                                     issue_date: advisory['issue_date'],
+                                     references: advisory['reference'],
+                                     kind: advisory['kind'],
+                                     synopsis: advisory['synopsis'],
+                                     severity: advisory['severity'],
+                                     os_family: advisory['os_family'],
+                                     fix_versions: advisory['packages'].join("\n"))
+    log.info("RHEL Advisories: Created #{advisory['name']}")
+    return adv
+  end
+
   # Take a single package name that has a yum advisory filed against it, then
   # parse out that name and find any packages with that name.  Check to see
   # which ones are before the patched version and mark any of those packages
@@ -387,6 +493,21 @@ class Import
     else
       git = Git.clone(RUBY_ADV_GIT, RUBY_ADV_DIR, :path => REPORTS_DIR)
     end
+  end
+
+  # The advisory puts package names with the type (server, workstation, etc)
+  # separated from the package name and version by a :.  Split off that first
+  # part and just return the package itself.
+  def parse_rhel_package (package)
+    if m = /^([^:]+):(.+)/.match(package)
+      type = m[1]
+      if /^\dServer/.match(type)
+        package = m[2]
+      else
+        package = ''
+      end
+    end
+    return package
   end
 
   def log
