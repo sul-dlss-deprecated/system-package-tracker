@@ -1,19 +1,16 @@
-class Import
+class Import::Yum
 
   require 'net/http'
   require 'nokogiri'
   require 'rexml/document'
-  require 'git'
   require 'find'
   require 'yaml'
-  require 'rubygems'
   require 'rpm'
   require 'logger'
   require 'activerecord-import'
   require "activerecord-import/base"
   ActiveRecord::Import.require_adapter('pg')
 
-  SERVER_FILES  = '/var/lib/package-reports/*.yaml'
   LOGFILE       = 'log/import.log'
   LOGLEVEL      = Logger::INFO
 
@@ -22,7 +19,6 @@ class Import
 
   CENTOS_ADV    = 'https://raw.githubusercontent.com/stevemeier/cefs/master/errata.latest.xml'
 
-  RUBY_ADV_GIT = 'https://github.com/rubysec/ruby-advisory-db.git'
   REPORTS_DIR = '/home/reporting/'
   RUBY_ADV_DIR = 'ruby-advisory-db'
   RHEL_ADV_DIR = 'rhel-cvrf'
@@ -55,196 +51,6 @@ class Import
       adv = add_centos_advisory(advisory)
       packages.each do |package|
         check_yum_package(adv, package)
-      end
-    end
-  end
-
-  # Read the files for checked in servers, parse them out, and then save the
-  # current state of servers and their packages to the database.
-  def servers
-    package_types = %w(yum gem)
-    status_types = %w(installed pending)
-
-    servers = []
-    servers_update = []
-    packages_new = []
-    server_packages = {}
-    package_ids = {}
-    Dir.glob(SERVER_FILES).sort.each do |yaml_file|
-#      next unless /sulreports/.match(yaml_file)
-      server_yaml = YAML.load(File.open(yaml_file))
-
-      hostname = server_yaml['system']['hostname']
-      os_release = server_yaml['system']['release']
-      os_family = generate_os_family(os_release)
-      last_checkin = server_yaml['system']['lastrun']
-
-      if Server.exists?(hostname: hostname)
-        log.info("Servers: Updating #{hostname}")
-        servers_update << [hostname, os_release, os_family, last_checkin]
-      else
-        log.info("Servers: Adding #{hostname}")
-        servers << [hostname, os_release, os_family, last_checkin]
-      end
-      server_packages[hostname] = []
-
-      # For each package, make sure it's not already in the database and add
-      # it to the list of packages to add if not.
-      package_types.each do |type|
-        status_types.each do |status|
-          next unless server_yaml[type].key?(status)
-          server_yaml[type][status].each_key do |pkg|
-            arch = server_yaml[type][status][pkg]['arch'] || 'none'
-            server_yaml[type][status][pkg]['version'].each do |version|
-              server_packages[hostname] << [pkg, version, arch, type, status,
-                                            os_family]
-
-              pkey = pkg + ' ' + version + ' ' + arch + ' ' + type + ' ' + os_family
-              next if package_ids.key?(pkey)
-              package = Package.find_by(name: pkg, version: version, arch: arch,
-                                        provider: type, os_family: os_family)
-              if package == nil
-                log.info("Servers: Adding Package #{pkg}")
-                packages_new << [pkg, version, arch, type, os_family]
-              else
-                package_ids[pkey] = package.id
-              end
-            end
-          end
-        end
-      end
-    end
-
-    # Load all hostnames and packages.
-    log.info("Servers: *** Importing new servers")
-    columns = ['hostname', 'os_release', 'os_family', 'last_checkin']
-    Server.import(columns, servers)
-    log.info("Servers: *** Importing new packages")
-    columns = ['name', 'version', 'arch', 'provider', 'os_family']
-    Package.import(columns, packages_new.uniq)
-
-    # Update server to package associations by deleting any associations for
-    # our found servers and then importing a new list of associations.
-    # TODO: It would be cleaner to only remove no longer existing associations.
-    delete_server_packages = []
-    import_server_packages = []
-    server_packages.each_key do |hostname|
-      server = Server.find_by(hostname: hostname)
-      delete_server_packages << server.id
-      server_packages[hostname].each do |p|
-        name, version, arch, provider, status, os_family = p
-        pkey = name + ' ' + version + ' ' + arch + ' ' + provider + ' ' + os_family
-        unless package_ids.key?(pkey)
-          package = Package.find_by(name: name, version: version, arch: arch,
-                                    provider: provider, os_family: os_family)
-          package_ids[pkey] = package.id
-        end
-        package_id = package_ids[pkey]
-        import_server_packages << [server.id, package_id, status]
-        log.info("Servers: Linking #{hostname} to #{name}, #{version}")
-      end
-    end
-    log.info("Servers: *** Clearing old server packages")
-    ServerToPackage.delete_all(:server_id => delete_server_packages)
-    log.info("Servers: *** Refreshing server packages")
-    columns = ['server_id', 'package_id', 'status']
-    ServerToPackage.import(columns, import_server_packages)
-
-    # Update any server information that has changed.
-    log.info("Servers: *** Updating existing servers")
-    ActiveRecord::Base.transaction do
-      servers_update.each do |update|
-        hostname, os, os_family, last_checkin = update
-        Server.where(:hostname => hostname).update_all(:os_release => os,
-          :os_family => os_family, :last_checkin => Time.at(last_checkin))
-      end
-    end
-
-    return
-  end
-
-  # Search the advisory directory, skipping advisories for gems we don't
-  # have installed, and then checking those that we do have installed for
-  # matching versions.
-  def ruby_advisories
-    maintain_ruby_advisory_git()
-
-    advisory_dir = REPORTS_DIR + RUBY_ADV_DIR + '/gems'
-    Dir.entries(advisory_dir).sort.each do |gem|
-      next if gem == '.' || gem == '..'
-      packages = Package.where(name: gem, provider: 'gem')
-      unless packages.count > 0
-        log.info("Ruby advisories: Skipping #{gem}, no local installs")
-        next
-      end
-
-      gemdir = "#{advisory_dir}/#{gem}/"
-      Dir.glob(gemdir + '*.yml').sort.each do |adv_file|
-        advisory = YAML::load(File.open(adv_file))
-
-        # The advisories pull both from CVEs and from OSVDB.  In some cases
-        # the advisory will have both, but in most cases the name will be one
-        # or the other.
-        if advisory['cve'] && advisory['osvdb']
-          name = advisory['cve'] + '/' + advisory['osvdb'].to_s
-        else
-          name = advisory['cve'] || advisory['osvdb']
-        end
-
-        # Gather other fields and map to what we care about.
-        description = advisory['description']
-        issue_date = advisory['date']
-        references = advisory['url']
-        kind = 'Unknown'
-        synopsis = advisory['title']
-        severity = advisory['cvss_v2'] || 'Unknown'
-        os_family = 'gem'
-
-        # Unaffected versions are equivalent to patched versions to our logic.
-        patched_versions = []
-        if advisory.key?('patched_versions')
-          patched_versions << advisory['patched_versions']
-        end
-        if advisory.key?('unaffected_versions')
-          patched_versions << advisory['unaffected_versions']
-        end
-        next if patched_versions.count == 0
-        fix_versions = patched_versions.join("\n")
-
-        log.info("Ruby advisories: Adding advisory #{name} for #{gem}")
-        adv = nil
-        if Advisory.exists?(name: name, os_family: os_family)
-          adv = Advisory.find_by(name: name, os_family: os_family)
-        else
-          adv = Advisory.create(name: name,
-                                description: description,
-                                issue_date: issue_date,
-                                references: references,
-                                kind: kind,
-                                synopsis: synopsis,
-                                severity: severity,
-                                os_family: os_family,
-                                fix_versions: fix_versions)
-        end
-
-        # Check each package with this name to see if it is affected by the
-        # advisory.  This uses gem formatted requirement strings, so use that
-        # to parse if the packages match.
-        packages.each do |package|
-          matched = 0
-          advisory['patched_versions'].each do |version|
-            pv = Gem::Version.new(package.version)
-            if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
-              log.info("Ruby advisories: Skipping link of #{gem}/#{name} to #{package.name} #{package.version}: patch satisfied by #{version}")
-              matched = 1
-              break
-            end
-          end
-          unless matched == 1
-            log.info("Ruby advisories: Linked #{gem}/#{name} to #{package.name} #{package.version}")
-            adv.advisories_to_packages.create(package_id: package.id)
-          end
-        end
       end
     end
   end
@@ -397,21 +203,6 @@ class Import
 
   private
 
-  # Take a hostname, os release, and the time a yaml report was generated.
-  # Use these to create or update a server record, along with clearing all
-  # packages for that record so that new packages may be updated.
-  def save_server (hostname, os_release, last_checkin)
-    server = Server.find_or_create_by(hostname: hostname)
-    server.os_release = os_release
-    server.last_checkin = last_checkin
-
-    server.servers_to_packages.clear
-    server.save
-
-    log.info("Servers: Added/updated #{server.hostname}")
-    return server
-  end
-
   # Take an advisory record from the centos errata, parse it out, and then add
   # to the database.
   def add_centos_advisory (advisory)
@@ -510,18 +301,6 @@ class Import
     end
   end
 
-  # Maintain the ruby advisory database checkout by pulling fresh content.
-  # If it does not yet exist, do an initial clone.
-  def maintain_ruby_advisory_git
-    checkout_dir = REPORTS_DIR + RUBY_ADV_DIR
-    if (Dir.exist?(checkout_dir))
-      git = Git.open(checkout_dir)
-      git.pull
-    else
-      git = Git.clone(RUBY_ADV_GIT, RUBY_ADV_DIR, :path => REPORTS_DIR)
-    end
-  end
-
   # The advisory puts package names with the type (server, workstation, etc)
   # separated from the package name and version by a :.  Split off that first
   # part and just return the package itself.
@@ -547,19 +326,6 @@ class Import
       return packages
     else
       return [package]
-    end
-  end
-
-  # Given the OS release (a full string of specific OS family plus release
-  # version), return a one-word string that can be used as the more general
-  # family of os (centos, rhel, etc).
-  def generate_os_family (os_release)
-    if /^Red Hat Enterprise Linux/.match(os_release)
-      return 'rhel'
-    elsif /^CentOS/.match(os_release)
-      return 'centos'
-    else
-      return 'unknown'
     end
   end
 
