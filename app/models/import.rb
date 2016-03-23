@@ -76,14 +76,15 @@ class Import
 
       hostname = server_yaml['system']['hostname']
       os_release = server_yaml['system']['release']
+      os_family = generate_os_family(os_release)
       last_checkin = server_yaml['system']['lastrun']
 
       if Server.exists?(hostname: hostname)
         log.info("Servers: Updating #{hostname}")
-        servers_update << [hostname, os_release, last_checkin]
+        servers_update << [hostname, os_release, os_family, last_checkin]
       else
         log.info("Servers: Adding #{hostname}")
-        servers << [hostname, os_release, last_checkin]
+        servers << [hostname, os_release, os_family, last_checkin]
       end
       server_packages[hostname] = []
 
@@ -95,15 +96,16 @@ class Import
           server_yaml[type][status].each_key do |pkg|
             arch = server_yaml[type][status][pkg]['arch'] || 'none'
             server_yaml[type][status][pkg]['version'].each do |version|
-              server_packages[hostname] << [pkg, version, arch, type, status]
+              server_packages[hostname] << [pkg, version, arch, type, status,
+                                            os_family]
 
-              pkey = pkg + ' ' + version + ' ' + arch + ' ' + type
+              pkey = pkg + ' ' + version + ' ' + arch + ' ' + type + ' ' + os_family
               next if package_ids.key?(pkey)
               package = Package.find_by(name: pkg, version: version, arch: arch,
-                                        provider: type)
+                                        provider: type, os_family: os_family)
               if package == nil
                 log.info("Servers: Adding Package #{hostname}")
-                packages_new << [pkg, version, arch, type]
+                packages_new << [pkg, version, arch, type, os_family]
               else
                 package_ids[pkey] = package.id
               end
@@ -115,25 +117,26 @@ class Import
 
     # Load all hostnames and packages.
     log.info("Servers: *** Importing new servers")
-    columns = ['hostname', 'os_release', 'last_checkin']
+    columns = ['hostname', 'os_release', 'os_family', 'last_checkin']
     Server.import(columns, servers)
     log.info("Servers: *** Importing new packages")
-    columns = ['name', 'version', 'arch', 'provider']
+    columns = ['name', 'version', 'arch', 'provider', 'os_family']
     Package.import(columns, packages_new.uniq)
 
     # Update server to package associations by deleting any associations for
     # our found servers and then importing a new list of associations.
+    # TODO: It would be cleaner to only remove no longer existing associations.
     delete_server_packages = []
     import_server_packages = []
     server_packages.each_key do |hostname|
       server = Server.find_by(hostname: hostname)
       delete_server_packages << server.id
       server_packages[hostname].each do |p|
-        name, version, arch, provider, status = p
-        pkey = name + ' ' + version + ' ' + arch + ' ' + provider
+        name, version, arch, provider, status, os_family = p
+        pkey = name + ' ' + version + ' ' + arch + ' ' + provider + ' ' + os_family
         unless package_ids.key?(pkey)
           package = Package.find_by(name: name, version: version, arch: arch,
-                                    provider: provider)
+                                    provider: provider, os_family: os_family)
           package_ids[pkey] = package.id
         end
         package_id = package_ids[pkey]
@@ -151,9 +154,9 @@ class Import
     log.info("Servers: *** Updating existing servers")
     ActiveRecord::Base.transaction do
       servers_update.each do |update|
-        hostname, os, last_checkin = update
+        hostname, os, os_family, last_checkin = update
         Server.where(:hostname => hostname).update_all(:os_release => os,
-          :last_checkin => Time.at(last_checkin))
+          :os_family => os_family, :last_checkin => Time.at(last_checkin))
       end
     end
 
@@ -355,7 +358,7 @@ class Import
       advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
       advisory['issue_date'] = @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
       advisory['kind'] = @doc.at_xpath('//DocumentType').content
-      advisory['os_family'] = 'RHEL'
+      advisory['os_family'] = 'rhel'
 
       # There can be multiple references and synopses, but they'll usually be
       # the exact same item.  For our purposes we just want to pick the first.
@@ -481,10 +484,10 @@ class Import
     package_architecture = m[4]
     return nil if package_architecture == 'src'
 
-    # TODO: Need to have a difference between RHEL and Centos versions.
+    os_family = adv.os_family
     advisory_ver = RPM::Version.new(package_version + '-' + package_subver)
     Package.where(name: package_name, arch: package_architecture,
-                  provider: 'yum').find_each do |package|
+                  provider: 'yum', os_family: os_family).find_each do |package|
 
       # Skip this package unless it's for the same major release as the
       # advisory package.
@@ -539,6 +542,19 @@ class Import
       return packages
     else
       return [package]
+    end
+  end
+
+  # Given the OS release (a full string of specific OS family plus release
+  # version), return a one-word string that can be used as the more general
+  # family of os (centos, rhel, etc).
+  def generate_os_family (os_release)
+    if /^Red Hat Enterprise Linux/.match(os_release)
+      return 'rhel'
+    elsif /^CentOS/.match(os_release)
+      return 'centos'
+    else
+      return 'unknown'
     end
   end
 

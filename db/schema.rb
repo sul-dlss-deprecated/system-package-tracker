@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160130001619) do
+ActiveRecord::Schema.define(version: 20160323062302) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -46,9 +46,10 @@ ActiveRecord::Schema.define(version: 20160130001619) do
     t.string   "provider"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string   "os_family"
   end
 
-  add_index "packages", ["name", "version", "arch", "provider"], name: "index_packages_on_name_and_version_and_arch_and_provider", unique: true, using: :btree
+  add_index "packages", ["name", "version", "arch", "provider", "os_family"], name: "unique_pkg", unique: true, using: :btree
   add_index "packages", ["name"], name: "index_packages_on_name", using: :btree
 
   create_table "server_to_packages", force: :cascade do |t|
