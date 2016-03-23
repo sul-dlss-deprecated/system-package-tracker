@@ -363,7 +363,12 @@ class Import
       # There can be multiple references and synopses, but they'll usually be
       # the exact same item.  For our purposes we just want to pick the first.
       advisory['reference'] = @doc.xpath("//DocumentReferences/Reference[@Type='Self']/URL").first.content
-      advisory['synopsis'] = @doc.xpath("//Vulnerability/Notes/Note[@Title='Vulnerability Description']").first.content
+      vulnerability = @doc.xpath("//Vulnerability/Notes/Note[@Title='Vulnerability Description']")
+      if vulnerability.first != nil
+        advisory['synopsis'] = vulnerability.first.content
+      else
+        advisory['synopsis'] = ''
+      end
 
       # Each advisory may cover one or more CVEs.
       # TODO: Field for CVEs
