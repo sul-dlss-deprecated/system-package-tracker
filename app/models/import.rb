@@ -104,7 +104,7 @@ class Import
               package = Package.find_by(name: pkg, version: version, arch: arch,
                                         provider: type, os_family: os_family)
               if package == nil
-                log.info("Servers: Adding Package #{hostname}")
+                log.info("Servers: Adding Package #{pkg}")
                 packages_new << [pkg, version, arch, type, os_family]
               else
                 package_ids[pkey] = package.id
