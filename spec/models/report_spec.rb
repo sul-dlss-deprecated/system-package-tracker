@@ -5,11 +5,16 @@ RSpec.describe Report, type: :model do
   # This is a short-term fix for my fixtures not being loaded on test server.
   # I'll debug what's wrong after I'm done here.
   require 'active_record/fixtures'
-  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'), 'servers')
-  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'), 'packages')
-  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'), 'advisories')
-  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'), 'advisory_to_packages')
-  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'), 'server_to_packages')
+  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'),
+                                           'servers')
+  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'),
+                                           'packages')
+  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'),
+                                           'advisories')
+  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'),
+                                           'advisory_to_packages')
+  ActiveRecord::FixtureSet.create_fixtures(Rails.root.join('spec', 'fixtures'),
+                                           'server_to_packages')
 
   fixtures :servers
   fixtures :packages

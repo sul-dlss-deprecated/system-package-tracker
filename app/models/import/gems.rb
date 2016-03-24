@@ -23,8 +23,6 @@ class Import::Gems
   # have installed, and then checking those that we do have installed for
   # matching versions.
   def ruby_advisories
-    maintain_ruby_advisory_git()
-
     advisory_dir = REPORTS_DIR + RUBY_ADV_DIR + '/gems'
     Dir.entries(advisory_dir).sort.each do |gem|
       next if gem == '.' || gem == '..'
@@ -107,7 +105,7 @@ class Import::Gems
 
   # Maintain the ruby advisory database checkout by pulling fresh content.
   # If it does not yet exist, do an initial clone.
-  def maintain_ruby_advisory_git
+  def update_source
     checkout_dir = REPORTS_DIR + RUBY_ADV_DIR
     if (Dir.exist?(checkout_dir))
       git = Git.open(checkout_dir)

@@ -90,8 +90,15 @@ class Import::Yum
   # we would need to look at another source/using his scripts for ourselves.
   def get_centos_advisories
     uri = URI(CENTOS_ADV)
-    Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(uri.host, uri.port, :use_ssl => 1) do |http|
-      return http.get(uri.path).body
+    if PROXY_ADDR == ''
+      Net::HTTP.start(uri.host, uri.port, :use_ssl => 1) do |http|
+        return http.get(uri.path).body
+      end
+    else
+      Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(uri.host, uri.port,
+                                                     :use_ssl => 1) do |http|
+        return http.get(uri.path).body
+      end
     end
   end
 
