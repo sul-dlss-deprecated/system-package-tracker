@@ -1,3 +1,5 @@
+# Mailing for our various server and package and advisory reports, passing
+# data through in a mail rather than to stdout.
 class ReportMailer < ApplicationMailer
   default to: 'sul-sysadmin-rpts@lists.stanford.edu'
 

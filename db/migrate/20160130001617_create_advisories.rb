@@ -1,3 +1,4 @@
+# Initial creation of the table containing package advisory data.
 class CreateAdvisories < ActiveRecord::Migration
   def change
     create_table :advisories do |t|
@@ -13,7 +14,6 @@ class CreateAdvisories < ActiveRecord::Migration
 
       t.timestamps null: false
     end
-    add_index :advisories, [:name, :os_family], :unique => true
-
+    add_index :advisories, [:name, :os_family], unique: true
   end
 end

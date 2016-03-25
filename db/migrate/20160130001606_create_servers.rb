@@ -1,3 +1,4 @@
+# Initial creation of our server table.
 class CreateServers < ActiveRecord::Migration
   def change
     create_table :servers do |t|
@@ -8,7 +9,6 @@ class CreateServers < ActiveRecord::Migration
 
       t.timestamps null: false
     end
-    add_index :servers, [:hostname], :unique => true
-
+    add_index :servers, [:hostname], unique: true
   end
 end

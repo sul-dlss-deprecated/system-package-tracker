@@ -1,6 +1,6 @@
 namespace :report do
   desc 'Report on vulnerabilities per package'
-  task :package_vulnerabilities, [:output_type] => :environment do |t, args|
+  task :package_vulnerabilities, [:output_type] => :environment do |_t, args|
     output_type = args[:output_type] || 'stdout'
     package_search = ENV['PACKAGE'] || ''
 
@@ -14,11 +14,11 @@ namespace :report do
       report[name].keys.sort.each do |version|
         report[name][version].keys.sort.each do |arch|
           report[name][version][arch].keys.sort.each do |provider|
-            output << sprintf("%s %s-%s (%s) (%s)\n", name, version, arch,
-                              provider,
-                              report[name][version][arch][provider]['advisories'])
+            advisories = report[name][version][arch][provider]['advisories']
+            output << format("%s %s-%s (%s) (%s)\n", name, version, arch,
+                             provider, advisories)
             report[name][version][arch][provider]['servers'].sort.each do |s|
-              output << sprintf("\t%s\n", s)
+              output << format("\t%s\n", s)
             end
           end
         end
@@ -31,6 +31,5 @@ namespace :report do
     else
       print output
     end
-
   end
 end

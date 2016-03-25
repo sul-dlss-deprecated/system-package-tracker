@@ -39,6 +39,7 @@ GEM
       thread_safe (~> 0.3, >= 0.3.4)
       tzinfo (~> 1.1)
     arel (6.0.3)
+    ast (2.2.0)
     binding_of_caller (0.7.2)
       debug_inspector (>= 0.0.1)
     builder (3.2.2)
@@ -80,6 +81,9 @@ GEM
       capistrano-bundle_audit (>= 0.0.3)
       capistrano-one_time_key
       capistrano-releaseboard
+    dlss_cops (0.0.3)
+      rubocop (~> 0.37.0)
+      rubocop-rspec (~> 1.4.0)
     docile (1.1.5)
     erubis (2.7.0)
     faraday (0.9.2)
@@ -107,7 +111,10 @@ GEM
     net-ssh (3.0.2)
     nokogiri (1.6.7.2)
       mini_portile2 (~> 2.0.0.rc2)
+    parser (2.3.0.6)
+      ast (~> 2.2)
     pg (0.18.4)
+    powerpack (0.1.1)
     rack (1.6.4)
     rack-test (0.6.3)
       rack (>= 1.0)
@@ -135,6 +142,7 @@ GEM
       activesupport (= 4.2.5.2)
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
+    rainbow (2.1.0)
     rake (10.5.0)
     rdoc (4.2.2)
       json (~> 1.4)
@@ -157,6 +165,14 @@ GEM
       rspec-mocks (~> 3.4.0)
       rspec-support (~> 3.4.0)
     rspec-support (3.4.1)
+    rubocop (0.37.2)
+      parser (>= 2.3.0.4, < 3.0)
+      powerpack (~> 0.1)
+      rainbow (>= 1.99.1, < 3.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (~> 0.3)
+    rubocop-rspec (1.4.0)
+    ruby-progressbar (1.7.5)
     sdoc (0.4.1)
       json (~> 1.7, >= 1.7.7)
       rdoc (~> 4.0)
@@ -183,6 +199,7 @@ GEM
     tins (1.6.0)
     tzinfo (1.2.2)
       thread_safe (~> 0.1)
+    unicode-display_width (0.3.1)
     web-console (2.3.0)
       activemodel (>= 4.0)
       binding_of_caller (>= 0.7.2)
@@ -201,6 +218,7 @@ DEPENDENCIES
   capistrano-rvm
   coveralls
   dlss-capistrano
+  dlss_cops
   git
   jbuilder (~> 2.0)
   pg

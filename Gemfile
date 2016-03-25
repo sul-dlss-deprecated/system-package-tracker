@@ -1,6 +1,5 @@
 source 'https://rubygems.org'
 
-
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '4.2.5.2'
 
@@ -13,12 +12,6 @@ gem 'activerecord-import'
 gem 'jbuilder', '~> 2.0'
 # bundle exec rake doc:rails generates the API under doc/api.
 gem 'sdoc', '~> 0.4.0', group: :doc
-
-# Use ActiveModel has_secure_password
-# gem 'bcrypt', '~> 3.1.7'
-
-# Use Unicorn as the app server
-# gem 'unicorn'
 
 # The RPM gem is needed for version parsing.
 gem 'rpm'
@@ -38,10 +31,10 @@ group :deployment do
 end
 
 group :development, :test do
-  # Call 'byebug' anywhere in the code to stop execution and get a debugger console
+  # Call 'byebug' anywhere in the code to get a debugger console
   gem 'byebug'
-
   gem 'rspec-rails', '~> 3.0'
+  gem 'dlss_cops'
 end
 
 group :test do

@@ -1,3 +1,4 @@
+# Initial creation of the table associating advisories with affected packages.
 class CreateAdvisoryToPackages < ActiveRecord::Migration
   def change
     create_table :advisory_to_packages do |t|
@@ -6,6 +7,5 @@ class CreateAdvisoryToPackages < ActiveRecord::Migration
 
       t.timestamps null: false
     end
-
   end
 end

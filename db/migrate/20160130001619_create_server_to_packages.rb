@@ -1,3 +1,4 @@
+# Initial creation of the table associating servers and their packages.
 class CreateServerToPackages < ActiveRecord::Migration
   def change
     create_table :server_to_packages do |t|
@@ -7,6 +8,5 @@ class CreateServerToPackages < ActiveRecord::Migration
 
       t.timestamps null: false
     end
-
   end
 end

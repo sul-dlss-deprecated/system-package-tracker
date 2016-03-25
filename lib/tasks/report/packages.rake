@@ -1,7 +1,7 @@
 namespace :report do
   desc 'Report on packages per server'
   task packages: :environment do
-    report = Report.new.installed_packages()
+    report = Report.new.installed_packages
 
     report.keys.sort.each do |hostname|
       puts hostname

@@ -1,7 +1,6 @@
 # This handles reporting methods, only taking the data that's already in the
 # database and presenting it for various functions.
 class DisplayController < ApplicationController
-
   # Do a full dump of all servers and their packages.
   def index
     @report = Report.new.installed_packages
@@ -20,7 +19,6 @@ class DisplayController < ApplicationController
   def updates
     @report = {}
     Server.find_each do |server|
-
       # Go through each package.  In some cases (gems) there may be multiple
       # versions of a package on the machine.
       packages = {}
@@ -28,18 +26,13 @@ class DisplayController < ApplicationController
         next unless package_map.status == 'pending'
         package = Package.find(package_map.package_id)
 
-        if !packages.key?(package.name)
-          packages[package.name] = []
-        end
-
         new = {}
         new['provider'] = package.provider
         new['version'] = package.version
+        packages[package.name] = [] unless packages.key?(package.name)
         packages[package.name] << new
       end
-      unless packages.empty?
-        @report[server.hostname] = packages
-      end
+      @report[server.hostname] = packages unless packages.empty?
     end
   end
 end

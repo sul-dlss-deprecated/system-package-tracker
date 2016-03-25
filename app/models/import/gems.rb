@@ -1,23 +1,24 @@
+# Import the ruby gem advisory database, including advisories for the gems in
+# actual use.
 class Import::Gems
-
   require 'net/http'
   require 'git'
   require 'yaml'
   require 'rubygems'
   require 'logger'
   require 'activerecord-import'
-  require "activerecord-import/base"
+  require 'activerecord-import/base'
   ActiveRecord::Import.require_adapter('pg')
 
-  LOGFILE       = 'log/import.log'
+  LOGFILE       = 'log/import.log'.freeze
   LOGLEVEL      = Logger::INFO
 
-  PROXY_ADDR    = 'swp.stanford.edu'
+  PROXY_ADDR    = 'swp.stanford.edu'.freeze
   PROXY_PORT    = 80
 
-  RUBY_ADV_GIT = 'https://github.com/rubysec/ruby-advisory-db.git'
-  REPORTS_DIR = '/home/reporting/'
-  RUBY_ADV_DIR = 'ruby-advisory-db'
+  RUBY_ADV_GIT = 'https://github.com/rubysec/ruby-advisory-db.git'.freeze
+  REPORTS_DIR = '/home/reporting/'.freeze
+  RUBY_ADV_DIR = 'ruby-advisory-db'.freeze
 
   # Search the advisory directory, skipping advisories for gems we don't
   # have installed, and then checking those that we do have installed for
@@ -34,16 +35,16 @@ class Import::Gems
 
       gemdir = "#{advisory_dir}/#{gem}/"
       Dir.glob(gemdir + '*.yml').sort.each do |adv_file|
-        advisory = YAML::load(File.open(adv_file))
+        advisory = YAML.load(File.open(adv_file))
 
         # The advisories pull both from CVEs and from OSVDB.  In some cases
         # the advisory will have both, but in most cases the name will be one
         # or the other.
-        if advisory['cve'] && advisory['osvdb']
-          name = advisory['cve'] + '/' + advisory['osvdb'].to_s
-        else
-          name = advisory['cve'] || advisory['osvdb']
-        end
+        name = if advisory['cve'] && advisory['osvdb']
+                 advisory['cve'] + '/' + advisory['osvdb'].to_s
+               else
+                 advisory['cve'] || advisory['osvdb']
+               end
 
         # Gather other fields and map to what we care about.
         description = advisory['description']
@@ -56,12 +57,10 @@ class Import::Gems
 
         # Unaffected versions are equivalent to patched versions to our logic.
         patched_versions = []
-        if advisory.key?('patched_versions')
-          patched_versions << advisory['patched_versions']
-        end
-        if advisory.key?('unaffected_versions')
-          patched_versions << advisory['unaffected_versions']
-        end
+        patched_versions << advisory['patched_versions'] \
+          if advisory.key?('patched_versions')
+        patched_versions << advisory['unaffected_versions'] \
+          if advisory.key?('unaffected_versions')
         next if patched_versions.count == 0
         fix_versions = patched_versions.join("\n")
 
@@ -89,13 +88,16 @@ class Import::Gems
           advisory['patched_versions'].each do |version|
             pv = Gem::Version.new(package.version)
             if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
-              log.info("Ruby advisories: Skipping link of #{gem}/#{name} to #{package.name} #{package.version}: patch satisfied by #{version}")
+              log.info("Ruby advisories: Skipping link of #{gem}/#{name} to " \
+                "#{package.name} #{package.version}: patch satisfied by " \
+                "#{version}")
               matched = 1
               break
             end
           end
           unless matched == 1
-            log.info("Ruby advisories: Linked #{gem}/#{name} to #{package.name} #{package.version}")
+            log.info("Ruby advisories: Linked #{gem}/#{name} to " \
+              "#{package.name} #{package.version}")
             adv.advisories_to_packages.create(package_id: package.id)
           end
         end
@@ -107,21 +109,20 @@ class Import::Gems
   # If it does not yet exist, do an initial clone.
   def update_source
     checkout_dir = REPORTS_DIR + RUBY_ADV_DIR
-    if (Dir.exist?(checkout_dir))
+    if Dir.exist?(checkout_dir)
       git = Git.open(checkout_dir)
       git.pull
     else
-      git = Git.clone(RUBY_ADV_GIT, RUBY_ADV_DIR, :path => REPORTS_DIR)
+      Git.clone(RUBY_ADV_GIT, RUBY_ADV_DIR, path: REPORTS_DIR)
     end
   end
 
   # Wrapper for doing logging of our import statuses for debugging.
   def log
     if @logger.nil?
-      @logger = Logger.new(LOGFILE, shift_age = 'monthly')
+      @logger = Logger.new(LOGFILE, 'monthly')
       @logger.level = LOGLEVEL
     end
     @logger
   end
-
 end

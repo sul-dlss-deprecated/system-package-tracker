@@ -18,3 +18,7 @@
 
 # Temporary directory for download testing.
 /spec/data/tmp
+
+# This is distributed via capistrano, so any here will just be for testing.
+/config/database.yml
+

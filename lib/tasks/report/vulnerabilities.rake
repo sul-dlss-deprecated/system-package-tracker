@@ -1,6 +1,6 @@
 namespace :report do
   desc 'Report on total vulnerabilities per server'
-  task :vulnerabilities, [:output_type] => :environment do |t, args|
+  task :vulnerabilities, [:output_type] => :environment do |_t, args|
     output_type = args[:output_type] || 'stdout'
     hostname = ENV['SEARCH_HOST'] || ''
     package_search = ENV['PACKAGE'] || ''
@@ -17,12 +17,12 @@ namespace :report do
     # top.
     vulnerable_packages = {}
     vulnerabilities = {}
-    report.keys.sort.each do |hostname|
-      report[hostname].keys.sort.each do |package|
-        report[hostname][package].keys.sort.each do |version|
+    report.keys.sort.each do |host|
+      report[host].keys.sort.each do |package|
+        report[host][package].keys.sort.each do |version|
           unique_pkg = package + '-' + version
           vulnerable_packages[unique_pkg] = 1
-          report[hostname][package][version].each do |advisory|
+          report[host][package][version].each do |advisory|
             vulnerabilities[advisory['name']] = 1
           end
         end
@@ -32,23 +32,24 @@ namespace :report do
     # Print that summary.
     total_systems = Server.count
     affected_systems = report.keys.count
-    output << sprintf("%-32s: %d/%d\n", 'Hosts with vulnerable packages',
-      affected_systems, total_systems)
-    output << sprintf("%-32s: %d\n", 'Vulnerable packages',
-      vulnerable_packages.keys.count)
-    output << sprintf("%-32s: %d\n", 'Total vulnerabilities',
-      vulnerabilities.keys.count)
+    output << format("%-32s: %d/%d\n", 'Hosts with vulnerable packages',
+                     affected_systems, total_systems)
+    output << format("%-32s: %d\n", 'Vulnerable packages',
+                     vulnerable_packages.keys.count)
+    output << format("%-32s: %d\n", 'Total vulnerabilities',
+                     vulnerabilities.keys.count)
     output << "\n"
 
     # Now do the actual report of each server and its advisories.
-    report.keys.sort.each do |hostname|
-      output << hostname + "\n"
+    report.keys.sort.each do |host|
+      output << host + "\n"
 
-      report[hostname].keys.sort.each do |package|
-        report[hostname][package].keys.sort.each do |version|
+      report[host].keys.sort.each do |package|
+        report[host][package].keys.sort.each do |version|
           output << "\t#{package} #{version}\n"
-          report[hostname][package][version].each do |advisory|
-            output << "\t\t" + advisory['name'] + ' ' + advisory['fix_versions_filtered'] + "\n"
+          report[host][package][version].each do |advisory|
+            output << "\t\t" + advisory['name'] + ' ' +
+                      advisory['fix_versions_filtered'] + "\n"
           end
         end
       end
@@ -60,6 +61,5 @@ namespace :report do
     else
       print output
     end
-
   end
 end

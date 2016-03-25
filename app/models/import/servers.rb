@@ -1,13 +1,13 @@
+# Load in the server xml files showing current state of each server.
 class Import::Servers
-
   require 'yaml'
   require 'logger'
   require 'activerecord-import'
-  require "activerecord-import/base"
+  require 'activerecord-import/base'
   ActiveRecord::Import.require_adapter('pg')
 
-  SERVER_FILES  = '/var/lib/package-reports/*.yaml'
-  LOGFILE       = 'log/import.log'
+  SERVER_FILES  = '/var/lib/package-reports/*.yaml'.freeze
+  LOGFILE       = 'log/import.log'.freeze
   LOGLEVEL      = Logger::INFO
 
   # Read the files for checked in servers, parse them out, and then save the
@@ -49,11 +49,12 @@ class Import::Servers
               server_packages[hostname] << [pkg, version, arch, type, status,
                                             os_family]
 
-              pkey = pkg + ' ' + version + ' ' + arch + ' ' + type + ' ' + os_family
+              pkey = pkg + ' ' + version + ' ' + arch + ' ' + type + ' ' +
+                     os_family
               next if package_ids.key?(pkey)
               package = Package.find_by(name: pkg, version: version, arch: arch,
                                         provider: type, os_family: os_family)
-              if package == nil
+              if package.nil?
                 log.info("Servers: Adding Package #{pkg}")
                 packages_new << [pkg, version, arch, type, os_family]
               else
@@ -66,11 +67,11 @@ class Import::Servers
     end
 
     # Load all hostnames and packages.
-    log.info("Servers: *** Importing new servers")
-    columns = ['hostname', 'os_release', 'os_family', 'last_checkin']
+    log.info('Servers: *** Importing new servers')
+    columns = %w(hostname os_release os_family last_checkin)
     Server.import(columns, servers)
-    log.info("Servers: *** Importing new packages")
-    columns = ['name', 'version', 'arch', 'provider', 'os_family']
+    log.info('Servers: *** Importing new packages')
+    columns = %w(name version arch provider os_family)
     Package.import(columns, packages_new.uniq)
 
     # Update server to package associations by deleting any associations for
@@ -83,7 +84,8 @@ class Import::Servers
       delete_server_packages << server.id
       server_packages[hostname].each do |p|
         name, version, arch, provider, status, os_family = p
-        pkey = name + ' ' + version + ' ' + arch + ' ' + provider + ' ' + os_family
+        pkey = name + ' ' + version + ' ' + arch + ' ' + provider + ' ' +
+               os_family
         unless package_ids.key?(pkey)
           package = Package.find_by(name: name, version: version, arch: arch,
                                     provider: provider, os_family: os_family)
@@ -94,29 +96,29 @@ class Import::Servers
         log.info("Servers: Linking #{hostname} to #{name}, #{version}")
       end
     end
-    log.info("Servers: *** Clearing old server packages")
-    ServerToPackage.delete_all(:server_id => delete_server_packages)
-    log.info("Servers: *** Refreshing server packages")
-    columns = ['server_id', 'package_id', 'status']
+    log.info('Servers: *** Clearing old server packages')
+    ServerToPackage.delete_all(server_id: delete_server_packages)
+    log.info('Servers: *** Refreshing server packages')
+    columns = %w(server_id package_id status)
     ServerToPackage.import(columns, import_server_packages)
 
     # Update any server information that has changed.
-    log.info("Servers: *** Updating existing servers")
+    log.info('Servers: *** Updating existing servers')
     ActiveRecord::Base.transaction do
       servers_update.each do |update|
         hostname, os, os_family, last_checkin = update
-        Server.where(:hostname => hostname).update_all(:os_release => os,
-          :os_family => os_family, :last_checkin => Time.at(last_checkin))
+        update_settings = { os_release: os,
+                            os_family: os_family,
+                            last_checkin: Time.zone.at(last_checkin) }
+        Server.where(hostname: hostname).update_all(update_settings)
       end
     end
-
-    return
   end
 
   # Take a hostname, os release, and the time a yaml report was generated.
   # Use these to create or update a server record, along with clearing all
   # packages for that record so that new packages may be updated.
-  def save_server (hostname, os_release, last_checkin)
+  def save_server(hostname, os_release, last_checkin)
     server = Server.find_or_create_by(hostname: hostname)
     server.os_release = os_release
     server.last_checkin = last_checkin
@@ -125,29 +127,25 @@ class Import::Servers
     server.save
 
     log.info("Servers: Added/updated #{server.hostname}")
-    return server
+    server
   end
 
   # Given the OS release (a full string of specific OS family plus release
   # version), return a one-word string that can be used as the more general
   # family of os (centos, rhel, etc).
-  def generate_os_family (os_release)
-    if /^Red Hat Enterprise Linux/.match(os_release)
-      return 'rhel'
-    elsif /^CentOS/.match(os_release)
-      return 'centos'
-    else
-      return 'unknown'
-    end
+  def generate_os_family(os_release)
+    return 'rhel' if /^Red Hat Enterprise Linux/ =~ os_release
+    return 'centos' if /^CentOS/ =~ os_release
+
+    'unknown'
   end
 
   # Wrapper for doing logging of our import statuses for debugging.
   def log
     if @logger.nil?
-      @logger = Logger.new(LOGFILE, shift_age = 'monthly')
+      @logger = Logger.new(LOGFILE, 'monthly')
       @logger.level = LOGLEVEL
     end
     @logger
   end
-
 end

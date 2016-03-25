@@ -1,15 +1,13 @@
 require 'rails_helper'
 
 RSpec.describe Import::Servers, type: :model do
-
-  # Tests for loading server data.
   describe '#servers' do
-    it "loads server files correctly" do
+    it 'loads server files correctly' do
       stub_const('Import::Servers::SERVER_FILES', 'spec/data/servers/*.yaml')
-      Import::Servers.new.servers
+      described_class.new.servers
 
       servers = Server.where("hostname LIKE 'import%.stanford.edu'")
-        .order('hostname')
+                      .order('hostname')
       expect(servers.size).to eq(2)
 
       # Installed and pending packages for each server have the right count.
@@ -19,5 +17,4 @@ RSpec.describe Import::Servers, type: :model do
       expect(servers.second.pending_packages.size).to eq(1)
     end
   end
-
 end
