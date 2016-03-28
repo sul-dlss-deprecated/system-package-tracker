@@ -53,7 +53,9 @@ class Report
         pkey = name + ' ' + version + ' ' + arch + ' ' + provider
         package_cache[pkey] = advisory_report(package) \
           unless package_cache.key?(pkey)
-        advisories = package_cache[pkey]
+        #advisories = package_cache[pkey]
+        advisories = Marshal.load(Marshal.dump(package_cache[pkey]))
+
 
         # Now add any advisories to the record for this package/version.
         next if advisories.empty?
