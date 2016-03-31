@@ -37,6 +37,10 @@ class Import
         # we don't run and will give false flags.
         next if /--X\d{3}$/ =~ advisory.name
 
+        # This contains bugfix and feature improvements, but we only care about
+        # the actual security advisories.
+        next unless advisory.attributes['type'] == 'Security Advisory'
+
         # Skip this record if it doesn't include a release we care about.
         packages = []
         advisory.elements.each('packages') do |adv_package|
