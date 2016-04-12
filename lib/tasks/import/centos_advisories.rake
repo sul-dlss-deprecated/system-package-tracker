@@ -1,6 +1,6 @@
 namespace :import do
   desc 'Import centos advisories from the web'
   task centos_advisories: :environment do
-    Import::Yum.new.centos_advisories
+    Import::Packages::Yum::Centos.new.import_advisories
   end
 end

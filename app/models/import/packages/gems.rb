@@ -1,6 +1,6 @@
 # Import the ruby gem advisory database, including advisories for the gems in
 # actual use.
-class Import::Gems
+class Import::Packages::Gems
   require 'net/http'
   require 'git'
   require 'yaml'
@@ -23,7 +23,7 @@ class Import::Gems
   # Search the advisory directory, skipping advisories for gems we don't
   # have installed, and then checking those that we do have installed for
   # matching versions.
-  def ruby_advisories
+  def import_advisories
     advisory_dir = REPORTS_DIR + RUBY_ADV_DIR + '/gems'
     Dir.entries(advisory_dir).sort.each do |gem|
       next if gem == '.' || gem == '..'

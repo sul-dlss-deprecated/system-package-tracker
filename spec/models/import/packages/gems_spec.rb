@@ -1,9 +1,9 @@
 require 'rails_helper'
 
-RSpec.describe Import::Gems, type: :model do
+RSpec.describe Import::Packages::Gems, type: :model do
   describe '#update_source' do
     it 'create git repo' do
-      stub_const('Import::Gems::REPORTS_DIR', 'spec/data/tmp/')
+      stub_const('Import::Packages::Gems::REPORTS_DIR', 'spec/data/tmp/')
       described_class.new.update_source
       testfile = 'spec/data/tmp/ruby-advisory-db/README.md'
       expect(File.exist?(testfile)).to eq(true)
@@ -11,11 +11,11 @@ RSpec.describe Import::Gems, type: :model do
   end
 
   # Test loading the ruby advisories.
-  describe '#ruby_advisories' do
+  describe '#import_advisories' do
     it 'load known ruby advisories and check state' do
-      stub_const('Import::Gems::REPORTS_DIR', 'spec/data/ruby-adv-test')
-      stub_const('Import::Gems::RUBY_ADV_DIR', '/')
-      described_class.new.ruby_advisories
+      stub_const('Import::Packages::Gems::REPORTS_DIR', 'spec/data/ruby-adv-test')
+      stub_const('Import::Packages::Gems::RUBY_ADV_DIR', '/')
+      described_class.new.import_advisories
 
       # There are six advisories, but one is for a package we don't install
       # and so it will be skipped.
