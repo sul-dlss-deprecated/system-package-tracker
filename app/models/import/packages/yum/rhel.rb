@@ -5,6 +5,7 @@ class Import
     class Yum
       class RHEL < Import::Packages::Yum
         require 'nokogiri'
+        require 'net/http'
         require 'find'
         require 'yaml'
         require 'logger'
@@ -15,21 +16,27 @@ class Import
         LOGFILE       = 'log/import.log'.freeze
         LOGLEVEL      = Logger::INFO
 
+        PROXY_ADDR    = 'swp.stanford.edu'.freeze
+        PROXY_PORT    = 80
+
         REPORTS_DIR = '/home/reporting/'.freeze
         RHEL_ADV_DIR = 'rhel-cvrf'.freeze
+
+        OVAL_LOCAL = '/home/reporting/com.redhat.rhsa-all.xml'.freeze
+        OVAL_REMOTE_HOST = 'www.redhat.com'.freeze
+        OVAL_REMOTE_PATH = '/security/data/oval/com.redhat.rhsa-all.xml.bz2'.freeze
 
         # Search the advisory directory, skipping advisories for gems we don't
         # have installed, and then checking those that we do have installed for
         # matching versions.
         def import_advisories
-          advisories = load_rhel_advisories
-          advisories.sort.each do |fname|
-            advisory = parse_cvrf(fname)
-            next if advisory.empty?
+          advisories = parse_oval(OVAL_LOCAL)
+          advisories.each do |advisory|
 
             # Log a note about any advisories that we could not get packages from.
             if advisory['packages'].nil? || advisory['packages'].empty?
-              log.info("RHEL Advisories: No packages listed in #{fname}")
+              log.info('RHEL Advisories: No packages listed in ' \
+                "#{advisory['name']}")
               next
             end
 
@@ -48,75 +55,69 @@ class Import
           end
         end
 
+        # Download the RHEL OVAL file and unbzip it for later use.
         def import_source
-        end
-
-        # Refresh and get a list of all RHEL advisories.  These are posted on RH's
-        # website as cvrf files.
-        def load_rhel_advisories
-          # TODO: Refresh files.
-
-          advisory_dir = REPORTS_DIR + RHEL_ADV_DIR
-          advisories = []
-          Find.find(advisory_dir) do |path|
-            next unless File.file?(path)
-            next unless /\.xml$/ =~ path
-            advisories << path
+          tmpfile = OVAL_LOCAL + '.bz2'
+          content = ''
+          if PROXY_ADDR == ''
+            Net::HTTP.start(OVAL_REMOTE_HOST) do |http|
+              content = http.get(OVAL_REMOTE_PATH).body
+            end
+          else
+            Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(OVAL_REMOTE_HOST) do |http|
+              content = http.get(OVAL_REMOTE_PATH).body
+            end
           end
+
+          open(tmpfile, 'wb') do |file|
+           file.write(content)
+          end
+          system('bunzip2', '--force', tmpfile)
         end
 
-        # Given a cvrf file, attempt to parse it and return the data.
-        def parse_cvrf(fname)
-          @doc = Nokogiri::XML(File.read(fname))
-          @doc.remove_namespaces!
+        # Parse the RHEL oval XML file containing advisory information.
+        def parse_oval(fname)
+          doc = Nokogiri::XML(File.read(fname))
+          doc.remove_namespaces!
 
           # Get basic simple text about the advisory.
-          advisory = {}
+          advisories = []
           begin
-            advisory['description'] = @doc.at_xpath('//DocumentTitle').content
-            advisory['name'] =
-              @doc.at_xpath('//DocumentTracking/Identification/ID').content
-            advisory['severity'] = @doc.at_xpath('//AggregateSeverity').content
-            advisory['issue_date'] =
-              @doc.at_xpath('//DocumentTracking/InitialReleaseDate').content
-            advisory['kind'] = @doc.at_xpath('//DocumentType').content
-            advisory['os_family'] = 'rhel'
-
-            # There can be multiple references and synopses, but they'll usually be
-            # the exact same item.  For our purposes we just want to pick the first.
-            path = "//DocumentReferences/Reference[@Type='Self']/URL"
-            advisory['reference'] = @doc.xpath(path).first.content
-            path = "//Vulnerability/Notes/Note[@Title='Vulnerability Description']"
-            vulnerability = @doc.xpath(path)
-            if vulnerability.first.nil?
+            doc.xpath('/oval_definitions/definitions/definition').each do |d|
+              advisory = {}
+              advisory['description'] = d.at_xpath('metadata/description').content
+              advisory['name'] = d.at_xpath('metadata/title').content
+              advisory['issue_date'] = d.at_xpath('metadata/advisory/issued')['date']
+              advisory['severity'] = d.at_xpath('metadata/advisory/severity').content
+              advisory['kind'] = 'Security Advisory'
+              advisory['os_family'] = 'rhel'
               advisory['synopsis'] = ''
-            else
-              advisory['synopsis'] = vulnerability.first.content
-            end
 
-            # Each advisory may cover one or more CVEs.
-            # TODO: Field for CVEs
-            advisory['cves'] = []
-            @doc.xpath('//Vulnerability/CVE').each do |cve|
-              advisory['cves'] << cve.content
-            end
-
-            # Lastly, find and parse out all of the packages that will fix this
-            # advisory.  Expand any source packages into all the archs we use.
-            packages = []
-            @doc.xpath('//ProductTree/Branch[@Type="Product Version"]').each do |pv|
-              pv.xpath('//ProductTree/Branch/FullProductName').each do |p|
-                expand_rhel_src(p.content).each do |package|
-                  packages << package
-                end
+              # Packages are saved as criteria for matching.  We'll parse them out to
+              # find the actual names/versions.
+              packages = []
+              d.xpath('criteria//criterion').each do |c|
+                m = /^(\S+) is earlier than (.+)$/.match(c['comment'])
+                next if m.nil?
+                packages << m[1] + '-' + m[2] + '.x86_64.rpm'
+                packages << m[1] + '-' + m[2] + '.i386.rpm'
               end
+              advisory['packages'] = packages
+
+              # And gather the references, which are split between fields.
+              references = []
+              d.xpath('metadata/reference').each do |r|
+                references << r['ref_url']
+              end
+              advisory['references'] = references.join("\n")
+
+              advisories << advisory
             end
-            advisory['packages'] = packages.uniq
           rescue NoMethodError
             log.info("RHEL Advisories: could not parse #{fname}")
           end
 
-          advisory
+          advisories
         end
 
         private
@@ -143,30 +144,6 @@ class Import
                                            fix_versions: fixes)
           log.info("RHEL Advisories: Created #{advisory['name']}")
           adv
-        end
-
-        # The advisory puts package names with the type (server, workstation, etc)
-        # separated from the package name and version by a :.  Split off that first
-        # part and just return the package itself.
-        def parse_rhel_package(package)
-          m = /^([^:]+):(.+)/.match(package)
-          unless m.nil?
-            type = m[1]
-            return m[2] if /^\dServer/ =~ type
-            return ''
-          end
-          package
-        end
-
-        # The RHEL cvrf files seem to use the .src.rpm in some cases where they mean
-        # that an update applies to all of the architectures for this update.  See
-        # if the given RPM is for a source package and if so, replace with the
-        # x86_64 and i386 versions.
-        def expand_rhel_src(package)
-          m = /^(.+)\.src\.rpm$/.match(package)
-          return [package] if m.nil?
-
-          [m[1] + '.x86_64.rpm', m[1] + '.i386.rpm']
         end
 
         # Wrapper for doing logging of our import statuses for debugging.

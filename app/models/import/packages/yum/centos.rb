@@ -36,7 +36,6 @@ class Import
 
             # This contains bugfix and feature improvements, but we only care about
             # the actual security advisories.
-            puts advisory.attributes['type']
             next unless advisory.attributes['type'] == 'Security Advisory'
 
             # Skip this record if it doesn't include a release we care about.

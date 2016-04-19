@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<oval_definitions xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5" xmlns:oval="http://oval.mitre.org/XMLSchema/oval-common-5" xmlns:red-def="http://oval.mitre.org/XMLSchema/oval-definitions-5#linux" xmlns:unix-def="http://oval.mitre.org/XMLSchema/oval-definitions-5#unix" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://oval.mitre.org/XMLSchema/oval-common-5 oval-common-schema.xsd http://oval.mitre.org/XMLSchema/oval-definitions-5 oval-definitions-schema.xsd http://oval.mitre.org/XMLSchema/oval-definitions-5#unix unix-definitions-schema.xsd http://oval.mitre.org/XMLSchema/oval-definitions-5#linux linux-definitions-schema.xsd">
+ <generator>
+  <oval:product_name>Red Hat OVAL Patch Definition Merger</oval:product_name>
+  <oval:product_version>3</oval:product_version>
+  <oval:schema_version>5.10</oval:schema_version>
+  <oval:timestamp>2016-04-19T08:41:01</oval:timestamp>
+ </generator>
+ <definitions>
+  <definition class="patch" id="oval:com.redhat.rhsa:def:20150672" version="601">
+   <metadata>
+    <title>RHSA-2015:0672: bind security update (Moderate)</title>
+    <affected family="unix">
+     <platform>Red Hat Enterprise Linux 7</platform>
+     <platform>Red Hat Enterprise Linux 6</platform>
+    </affected>
+    <reference ref_id="RHSA-2015:0672-00" ref_url="https://rhn.redhat.com/errata/RHSA-2015-0672.html" source="RHSA"/>
+    <reference ref_id="CVE-2015-1349" ref_url="https://access.redhat.com/security/cve/CVE-2015-1349" source="CVE"/>
+    <description>The Berkeley Internet Name Domain (BIND) is an implementation of the Domain
+Name System (DNS) protocols. BIND includes a DNS server (named); a resolver
+library (routines for applications to use when interfacing with DNS); and
+tools for verifying that the DNS server is operating correctly.
+
+A flaw was found in the way BIND handled trust anchor management. A remote
+attacker could use this flaw to cause the BIND daemon (named) to crash
+under certain conditions. (CVE-2015-1349)
+
+Red Hat would like to thank ISC for reporting this issue.
+
+All bind users are advised to upgrade to these updated packages, which
+contain a backported patch to correct this issue. After installing the
+update, the BIND daemon (named) will be restarted automatically.</description>
+    <advisory from="secalert@redhat.com">
+     <severity>Moderate</severity>
+     <rights>Copyright 2015 Red Hat, Inc.</rights>
+     <issued date="2015-03-10"/>
+     <updated date="2015-03-11"/>
+     <cve href="https://access.redhat.com/security/cve/CVE-2015-1349">CVE-2015-1349</cve>
+     <bugzilla href="https://bugzilla.redhat.com/1193820" id="1193820">CVE-2015-1349 bind: issue in trust anchor management can cause named to crash</bugzilla>
+     <affected_cpe_list>
+      <cpe>cpe:/o:redhat:enterprise_linux:6</cpe>
+      <cpe>cpe:/o:redhat:enterprise_linux:7</cpe>
+     </affected_cpe_list>
+    </advisory>
+   </metadata>
+   <criteria operator="OR">
+    <criteria operator="AND">
+     <criteria operator="OR">
+      <criterion comment="Red Hat Enterprise Linux 6 Client is installed" test_ref="oval:com.redhat.rhsa:tst:20100842001"/>
+      <criterion comment="Red Hat Enterprise Linux 6 Server is installed" test_ref="oval:com.redhat.rhsa:tst:20100842002"/>
+      <criterion comment="Red Hat Enterprise Linux 6 Workstation is installed" test_ref="oval:com.redhat.rhsa:tst:20100842003"/>
+      <criterion comment="Red Hat Enterprise Linux 6 ComputeNode is installed" test_ref="oval:com.redhat.rhsa:tst:20100842004"/>
+     </criteria>
+     <criteria operator="OR">
+      <criteria operator="AND">
+       <criterion comment="bind is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672005"/>
+       <criterion comment="bind is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975006"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-chroot is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672011"/>
+       <criterion comment="bind-chroot is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975012"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-devel is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672009"/>
+       <criterion comment="bind-devel is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975010"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-libs is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672007"/>
+       <criterion comment="bind-libs is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975016"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-sdb is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672013"/>
+       <criterion comment="bind-sdb is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975014"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-utils is earlier than 32:9.8.2-0.30.rc1.el6_6.2" test_ref="oval:com.redhat.rhsa:tst:20150672015"/>
+       <criterion comment="bind-utils is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975008"/>
+      </criteria>
+     </criteria>
+    </criteria>
+    <criteria operator="AND">
+     <criteria operator="OR">
+      <criterion comment="Red Hat Enterprise Linux 7 Client is installed" test_ref="oval:com.redhat.rhsa:tst:20140675001"/>
+      <criterion comment="Red Hat Enterprise Linux 7 Server is installed" test_ref="oval:com.redhat.rhsa:tst:20140675002"/>
+      <criterion comment="Red Hat Enterprise Linux 7 Workstation is installed" test_ref="oval:com.redhat.rhsa:tst:20140675003"/>
+      <criterion comment="Red Hat Enterprise Linux 7 ComputeNode is installed" test_ref="oval:com.redhat.rhsa:tst:20140675004"/>
+     </criteria>
+     <criteria operator="OR">
+      <criteria operator="AND">
+       <criterion comment="bind is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672021"/>
+       <criterion comment="bind is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975006"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-chroot is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672033"/>
+       <criterion comment="bind-chroot is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975012"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-devel is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672030"/>
+       <criterion comment="bind-devel is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975010"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-libs is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672023"/>
+       <criterion comment="bind-libs is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975016"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-libs-lite is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672026"/>
+       <criterion comment="bind-libs-lite is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20141984041"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-license is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672031"/>
+       <criterion comment="bind-license is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20141984029"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-lite-devel is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672028"/>
+       <criterion comment="bind-lite-devel is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20141984039"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-sdb is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672034"/>
+       <criterion comment="bind-sdb is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975014"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-sdb-chroot is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672024"/>
+       <criterion comment="bind-sdb-chroot is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20141984035"/>
+      </criteria>
+      <criteria operator="AND">
+       <criterion comment="bind-utils is earlier than 32:9.9.4-18.el7_1.1" test_ref="oval:com.redhat.rhsa:tst:20150672022"/>
+       <criterion comment="bind-utils is signed with Red Hat redhatrelease2 key" test_ref="oval:com.redhat.rhsa:tst:20100975008"/>
+      </criteria>
+     </criteria>
+    </criteria>
+   </criteria>
+  </definition>
+ </definitions>
+</oval_definitions>
