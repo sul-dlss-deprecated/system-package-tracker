@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Import::Packages::Gems, type: :model do
-  describe '#update_source' do
-    it 'create git repo' do
+  describe "#update_source" do
+    it "create git repo" do
       stub_const('Import::Packages::Gems::REPORTS_DIR', 'spec/data/tmp/')
       described_class.new.update_source
       testfile = 'spec/data/tmp/ruby-advisory-db/README.md'
@@ -11,8 +11,8 @@ RSpec.describe Import::Packages::Gems, type: :model do
   end
 
   # Test loading the ruby advisories.
-  describe '#import_advisories' do
-    it 'load known ruby advisories and check state' do
+  describe "#import_advisories" do
+    it "load known ruby advisories and check state" do
       stub_const('Import::Packages::Gems::REPORTS_DIR', 'spec/data/ruby-adv-test')
       stub_const('Import::Packages::Gems::RUBY_ADV_DIR', '/')
       described_class.new.import_advisories

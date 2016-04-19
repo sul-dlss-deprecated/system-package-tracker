@@ -1,8 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Import::Servers, type: :model do
-  describe '#servers' do
-    it 'loads server files correctly' do
+  describe "#servers" do
+    it "loads server files correctly" do
       stub_const('Import::Servers::SERVER_FILES', 'spec/data/servers/*.yaml')
       described_class.new.servers
 

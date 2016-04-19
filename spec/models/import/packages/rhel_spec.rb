@@ -2,8 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Import::Packages::Yum::RHEL, type: :model do
 
-  describe '#import_source' do
-    it 'download and bunzip RHEL oval data' do
+  describe "#import_source" do
+    it "download and bunzip RHEL oval data" do
       stub_const('Import::Packages::Yum::RHEL::PROXY_ADDR', '')
       stub_const('Import::Packages::Yum::RHEL::OVAL_LOCAL', 'spec/data/tmp/oval')
       import = described_class.new
@@ -14,7 +14,7 @@ RSpec.describe Import::Packages::Yum::RHEL, type: :model do
   end
 
   describe '#parse_oval' do
-    it 'load known oval file and check data' do
+    it "load known oval file and check data" do
       import = described_class.new
       advisories = import.parse_oval('spec/data/oval.test')
 
