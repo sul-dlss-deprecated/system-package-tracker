@@ -1,2 +1,11 @@
+inherit_gem:
+  dlss_cops: "config/dlss_baseline.yml"
+
 Rails:
   Enabled: true
+
+AllCops:
+  TargetRubyVersion: 2.2
+  Exclude:
+    - db/migrate/**
+    - db/schema.rb

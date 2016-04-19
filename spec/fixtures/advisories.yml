@@ -1,0 +1,11 @@
+yum-advisory:
+  id: 1
+  name: CESA-2012--0001
+  description: Not available
+  issue_date: 2012-03-07 23:16:09
+  references: https://rhn.redhat.com/errata/RHSA-2012-0370.html http://lists.centos.org/pipermail/centos-announce/2012-March/018479.html
+  kind: Security Advisory
+  synopsis: Important CentOS xen security and bug fix update
+  severity: Important
+  os_family: centos
+  fix_versions: xen-3.0.3-135.el5_8.2.i386.rpm

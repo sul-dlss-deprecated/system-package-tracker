@@ -1,0 +1,29 @@
+xen_example:
+  server_id: 1
+  package_id: 1
+  status: installed
+
+activerecord_example:
+  server_id: 1
+  package_id: 3
+  status: installed
+
+xen_pending_example:
+  server_id: 1
+  package_id: 2
+  status: pending
+
+xen_test:
+  server_id: 2
+  package_id: 2
+  status: installed
+
+activerecord_test:
+  server_id: 2
+  package_id: 4
+  status: installed
+
+restclient_test:
+  server_id: 2
+  package_id: 5
+  status: installed

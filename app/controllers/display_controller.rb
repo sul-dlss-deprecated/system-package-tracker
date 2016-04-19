@@ -1,37 +1,38 @@
+# This handles reporting methods, only taking the data that's already in the
+# database and presenting it for various functions.
 class DisplayController < ApplicationController
-
+  # Do a full dump of all servers and their packages.
   def index
-    @report = Hash.new
-    Server.find_each do |server|
-      @report[server.hostname] = Hash.new
-      for package_map in server.servers_to_packages
-        package = Package.find(package_map.package_id)
-        name = package.name
-        provider = package.provider
-
-        # Create data structure if we've not yet encountered this provider or
-        # package.
-        if !@report[server.hostname].key?(provider)
-          @report[server.hostname][provider] = Hash.new
-          @report[server.hostname][provider][name] = Hash.new
-          @report[server.hostname][provider][name]['version'] = Array.new
-        elsif !@report[server.hostname][provider].key?(name)
-          @report[server.hostname][provider][name] = Hash.new
-          @report[server.hostname][provider][name]['version'] = Array.new
-        end
-        @report[server.hostname][provider][name]['version'] << package.version
-
-        # See if there are any advisories for this package.
-        # TODO: Put more useful information here.
-        for advisory_map in package.advisories_to_packages
-          advisory = Advisory.find(advisory_map.advisory_id)
-          if !@report[server.hostname][provider][name].key?('advisories')
-            @report[server.hostname][provider][name]['advisories'] = Array.new
-          end
-          @report[server.hostname][provider][name]['advisories'] << advisory.name
-        end
-      end
-    end
+    @report = Report.new.installed_packages
   end
 
+  # Create a report on all servers that have advisories.  This should show
+  # the servers with advisories, the names and versions of the affected
+  # packages, and the version required to fix the advisory.
+  def advisories
+    @report = Report.new.advisories
+  end
+
+  # Create a report on all servers that have pending updates.  This should
+  # show the servers with pending updates and the names and versions of those
+  # files.
+  def updates
+    @report = {}
+    Server.find_each do |server|
+      # Go through each package.  In some cases (gems) there may be multiple
+      # versions of a package on the machine.
+      packages = {}
+      server.servers_to_packages.find_each do |package_map|
+        next unless package_map.status == 'pending'
+        package = Package.find(package_map.package_id)
+
+        new = {}
+        new['provider'] = package.provider
+        new['version'] = package.version
+        packages[package.name] = [] unless packages.key?(package.name)
+        packages[package.name] << new
+      end
+      @report[server.hostname] = packages unless packages.empty?
+    end
+  end
 end
