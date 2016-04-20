@@ -1,3 +1,7 @@
 language: ruby
 rvm:
   - 2.2.4
+addons:
+  apt:
+    packages:
+      - librpm3
