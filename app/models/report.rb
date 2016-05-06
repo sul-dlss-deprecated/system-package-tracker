@@ -4,7 +4,7 @@ class Report
   # given an optional hostname, limit the search to that one host.
   def installed_packages(hostname = '')
     report = {}
-    Server.all.find_each do |server|
+    Server.where("last_checkin > ?", 7.days.ago).find_each do |server|
       next if hostname != '' && server.hostname != hostname
       report[server.hostname] = {}
 
@@ -38,7 +38,7 @@ class Report
   def advisories(hostname = '', search_package = '')
     report = {}
     package_cache = {}
-    Server.all.find_each do |server|
+    Server.where("last_checkin > ?", 7.days.ago).find_each do |server|
       next unless hostname == '' || /#{hostname}/ =~ server.hostname
 
       packages = {}
