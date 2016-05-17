@@ -2,8 +2,8 @@ require 'rails_helper'
 
 RSpec.describe Import::Packages::Yum::Centos, type: :model do
   # Get CentOS advisory XML contents.
-  describe '#update_source' do
-    it 'fetch centos advisories' do
+  describe "#update_source" do
+    it "fetch centos advisories" do
       stub_const('Import::Packages::Yum::Centos::PROXY_ADDR', '')
       xml_data = described_class.new.update_source
       expect(xml_data).to match(/^<opt>/)
@@ -11,10 +11,10 @@ RSpec.describe Import::Packages::Yum::Centos, type: :model do
   end
 
   # Actually load the CentOS advisories to make sure they work correctly.
-  describe '#import_advisories' do
+  describe "#import_advisories" do
     fixtures :packages
 
-    it 'load known data and check state' do
+    it "load known data and check state" do
       import = described_class.new
 
       # Set up a known subset of the advisories XML.
