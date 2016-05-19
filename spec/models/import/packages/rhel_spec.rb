@@ -23,14 +23,15 @@ RSpec.describe Import::Packages::Yum::RHEL, type: :model do
 
       name = 'RHSA-2015:0672: bind security update (Moderate)'
       expect(advisory['name']).to eq(name)
+      expect(advisory['title']).to eq(name)
       expect(advisory['severity']).to eq('Moderate')
       expect(advisory['kind']).to eq('Security Advisory')
       expect(advisory['os_family']).to eq('rhel')
-      #expect(advisory['reference']).to eq('https://rhn.redhat.com/errata/RHSA-2016-0001.html')
+      expect(advisory['references']).to eq("https://rhn.redhat.com/errata/RHSA-2015-0672.html\nhttps://access.redhat.com/security/cve/CVE-2015-1349")
       expect(advisory['issue_date']).to eq('2015-03-10')
+      expect(advisory['cve']).to eq('CVE-2015-1349')
+      expect(advisory['upstream_id']).to eq('RHSA-2015:0672')
 
-      # Synopsis is nothing on RHEL.
-      expect(advisory['synopsis']).to eq('')
       desc = "The Berkeley Internet Name Domain (BIND) is an implementation of the Domain\n" \
         "Name System (DNS) protocols. BIND includes a DNS server (named); a resolver\n" \
         "library (routines for applications to use when interfacing with DNS); and\n" \

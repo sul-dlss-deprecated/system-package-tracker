@@ -18,7 +18,7 @@ RSpec.describe Import::Packages::Yum::Centos, type: :model do
       import = described_class.new
 
       # Set up a known subset of the advisories XML.
-      xml = '<opt><CESA-2012--0370 description="Not available" from="centos-announce@centos.org" issue_date="2012-03-07 23:16:09" multirelease="1" notes="Not available" product="CentOS Linux" references="https://rhn.redhat.com/errata/RHSA-2012-0370.html http://lists.centos.org/pipermail/centos-announce/2012-March/018479.html" release="1" severity="Important" solution="Not available" synopsis="Important CentOS xen security and bug fix update" topic="Not available" type="Security Advisory"><os_arch>i386</os_arch><os_arch>x86_64</os_arch><os_release>5</os_release><packages>xen-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-3.0.3-135.el5_8.2.src.rpm</packages><packages>xen-3.0.3-135.el5_8.2.x86_64.rpm</packages><packages>xen-devel-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-devel-3.0.3-135.el5_8.2.x86_64.rpm</packages><packages>xen-libs-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-libs-3.0.3-135.el5_8.2.x86_64.rpm</packages></CESA-2012--0370><meta><author>Steve Meier</author><license>Free for non-commercial use</license><disclaimer>This software is provided AS IS. There are no guarantees. It might kill your cat.</disclaimer><timestamp>Thu Feb 11 09:08:36 UTC 2016</timestamp></meta></opt>'
+      xml = '<opt><CESA-2012--0370 description="Not available" from="centos-announce@centos.org" issue_date="2012-03-07 23:16:09" multirelease="1" notes="Not available" product="CentOS Linux" references="http://lists.centos.org/pipermail/centos-announce/CVE-2015-0001 https://rhn.redhat.com/errata/RHSA-2012-0370.html http://lists.centos.org/pipermail/centos-announce/2012-March/018479.html" release="1" severity="Important" solution="Not available" synopsis="Important CentOS xen security and bug fix update" topic="Not available" type="Security Advisory"><os_arch>i386</os_arch><os_arch>x86_64</os_arch><os_release>5</os_release><packages>xen-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-3.0.3-135.el5_8.2.src.rpm</packages><packages>xen-3.0.3-135.el5_8.2.x86_64.rpm</packages><packages>xen-devel-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-devel-3.0.3-135.el5_8.2.x86_64.rpm</packages><packages>xen-libs-3.0.3-135.el5_8.2.i386.rpm</packages><packages>xen-libs-3.0.3-135.el5_8.2.x86_64.rpm</packages></CESA-2012--0370><meta><author>Steve Meier</author><license>Free for non-commercial use</license><disclaimer>This software is provided AS IS. There are no guarantees. It might kill your cat.</disclaimer><timestamp>Thu Feb 11 09:08:36 UTC 2016</timestamp></meta></opt>'
       allow(import).to receive(:update_source).and_return(xml)
 
       import.import_advisories
@@ -26,6 +26,16 @@ RSpec.describe Import::Packages::Yum::Centos, type: :model do
       # Make sure advisory exists and has only the one correct package.
       adv = Advisory.find_by(name: 'CESA-2012--0370')
       expect(adv.name).to eq('CESA-2012--0370')
+      expect(adv.description).to eq('')
+      expect(adv.issue_date).to eq('2012-03-07 23:16:09')
+      expect(adv.references).to eq('http://lists.centos.org/pipermail/centos-announce/CVE-2015-0001 https://rhn.redhat.com/errata/RHSA-2012-0370.html http://lists.centos.org/pipermail/centos-announce/2012-March/018479.html')
+      expect(adv.kind).to eq('Security Advisory')
+      expect(adv.severity).to eq('Important')
+      expect(adv.os_family).to eq('centos')
+      expect(adv.title).to eq('Important CentOS xen security and bug fix update')
+      expect(adv.cve).to eq('CVE-2015-0001')
+      expect(adv.upstream_id).to eq('CESA-2012--0370')
+
       expect(adv.packages.size).to eq(1)
       expect(adv.packages.first.name).to eq('xen')
       expect(adv.packages.first.version).to eq('3.0.0-1.el5')
