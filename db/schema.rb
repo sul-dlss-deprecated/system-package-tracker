@@ -11,10 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160323062302) do
-
-  # These are extensions that must be enabled in order to support this database
-  enable_extension "plpgsql"
+ActiveRecord::Schema.define(version: 20160519173130) do
 
   create_table "advisories", force: :cascade do |t|
     t.string   "name"
@@ -22,15 +19,17 @@ ActiveRecord::Schema.define(version: 20160323062302) do
     t.string   "issue_date"
     t.string   "references"
     t.string   "kind"
-    t.string   "synopsis"
     t.string   "severity"
     t.string   "os_family"
     t.text     "fix_versions"
     t.datetime "created_at",   null: false
     t.datetime "updated_at",   null: false
+    t.string   "title"
+    t.string   "cve"
+    t.string   "upstream_id"
   end
 
-  add_index "advisories", ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true, using: :btree
+  add_index "advisories", ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true
 
   create_table "advisory_to_packages", force: :cascade do |t|
     t.integer  "package_id"
@@ -49,8 +48,8 @@ ActiveRecord::Schema.define(version: 20160323062302) do
     t.string   "os_family"
   end
 
-  add_index "packages", ["name", "version", "arch", "provider", "os_family"], name: "unique_pkg", unique: true, using: :btree
-  add_index "packages", ["name"], name: "index_packages_on_name", using: :btree
+  add_index "packages", ["name", "version", "arch", "provider", "os_family"], name: "unique_pkg", unique: true
+  add_index "packages", ["name"], name: "index_packages_on_name"
 
   create_table "server_to_packages", force: :cascade do |t|
     t.integer  "server_id"
@@ -69,6 +68,6 @@ ActiveRecord::Schema.define(version: 20160323062302) do
     t.datetime "updated_at",   null: false
   end
 
-  add_index "servers", ["hostname"], name: "index_servers_on_hostname", unique: true, using: :btree
+  add_index "servers", ["hostname"], name: "index_servers_on_hostname", unique: true
 
 end

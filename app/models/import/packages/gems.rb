@@ -46,14 +46,7 @@ class Import::Packages::Gems
                  advisory['cve'] || advisory['osvdb']
                end
 
-        # Gather other fields and map to what we care about.
-        description = advisory['description']
-        issue_date = advisory['date']
-        references = advisory['url']
-        kind = 'Unknown'
-        synopsis = advisory['title']
         severity = advisory['cvss_v2'] || 'Unknown'
-        os_family = 'gem'
 
         # Unaffected versions are equivalent to patched versions to our logic.
         patched_versions = []
@@ -64,19 +57,26 @@ class Import::Packages::Gems
         next if patched_versions.count == 0
         fix_versions = patched_versions.join("\n")
 
+        # CVEs aren't usually listed here with the starting string.  Add it.
+        cve = advisory['cve']
+        cve = 'CVE-' + cve unless cve =~ /^CVE-/
+
         log.info("Ruby advisories: Adding advisory #{name} for #{gem}")
         adv = nil
+        os_family = 'gem'
         if Advisory.exists?(name: name, os_family: os_family)
           adv = Advisory.find_by(name: name, os_family: os_family)
         else
           adv = Advisory.create(name: name,
-                                description: description,
-                                issue_date: issue_date,
-                                references: references,
-                                kind: kind,
-                                synopsis: synopsis,
+                                title: advisory['title'],
+                                description: advisory['description'],
+                                issue_date: advisory['date'],
+                                references: advisory['url'],
+                                kind: 'Unknown',
                                 severity: severity,
                                 os_family: os_family,
+                                cve: cve,
+                                upstream_id: advisory['osvdb'],
                                 fix_versions: fix_versions)
         end
 

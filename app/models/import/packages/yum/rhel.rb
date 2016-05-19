@@ -87,11 +87,16 @@ class Import
               advisory = {}
               advisory['description'] = d.at_xpath('metadata/description').content
               advisory['name'] = d.at_xpath('metadata/title').content
+              advisory['title'] = advisory['name']
               advisory['issue_date'] = d.at_xpath('metadata/advisory/issued')['date']
               advisory['severity'] = d.at_xpath('metadata/advisory/severity').content
               advisory['kind'] = 'Security Advisory'
               advisory['os_family'] = 'rhel'
-              advisory['synopsis'] = ''
+              advisory['cve'] = d.at_xpath('metadata/advisory/cve').content
+              
+              advisory['upstream_id'] = ''
+              m = /^(\S+):/.match(advisory['name'])
+              advisory['upstream_id'] = m[1] unless m.nil?
 
               # Packages are saved as criteria for matching.  We'll parse them out to
               # find the actual names/versions.
@@ -134,13 +139,15 @@ class Import
 
           fixes = advisory['packages'].join("\n")
           adv = Advisory.find_or_create_by(name: advisory['name'],
+                                           title: advisory['title'],
                                            description: advisory['description'],
                                            issue_date: advisory['issue_date'],
                                            references: advisory['reference'],
                                            kind: advisory['kind'],
-                                           synopsis: advisory['synopsis'],
                                            severity: advisory['severity'],
                                            os_family: advisory['os_family'],
+                                           cve: advisory['cve'],
+                                           upstream_id: advisory['upstream_id'],
                                            fix_versions: fixes)
           log.info("RHEL Advisories: Created #{advisory['name']}")
           adv

@@ -93,6 +93,11 @@ class Import
                        'Unknown'
                      end
 
+          # The CVE is only available inside the references URLs.
+          m = /\/(CVE-\d+-\d+)/.match(advisory.attributes['references'])
+          cve = ''
+          cve = m[1] unless m.nil?
+
           # Get all the package names at once to save as details.  We're going to
           # go through them again later, but do this once now to save them with
           # the normal record.  This field will only be to keep the information
@@ -104,13 +109,15 @@ class Import
 
           attributes = advisory.attributes
           adv = Advisory.find_or_create_by(name: advisory.name,
-                                           description: attributes['description'],
+                                           title: attributes['synopsis'],
+                                           description: '',
                                            issue_date: attributes['issue_date'],
                                            references: attributes['references'],
                                            kind: attributes['type'],
-                                           synopsis: attributes['synopsis'],
                                            severity: severity,
                                            os_family: 'centos',
+                                           cve: cve,
+                                           upstream_id: advisory.name,
                                            fix_versions: packages.join("\n"))
           log.info("CentOS Advisories: Created #{advisory.name}")
           adv

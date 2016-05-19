@@ -23,6 +23,8 @@ RSpec.describe Report, type: :model do
 
   describe "#installed_packages" do
     it "has output match" do
+      stub_const('Report::LAST_CHECKIN', 10000)
+
       report_test = YAML.load(File.open("spec/data/output/servers.yml"))
       report = described_class.new.installed_packages
       expect(report.keys.count).to eq(2)
@@ -32,6 +34,8 @@ RSpec.describe Report, type: :model do
 
   describe "#advisories" do
     it "has output match" do
+      stub_const('Report::LAST_CHECKIN', 10000)
+
       report_test = YAML.load(File.open("spec/data/output/advisories.yml"))
       report = described_class.new.advisories
       expect(report.keys.count).to eq(1)

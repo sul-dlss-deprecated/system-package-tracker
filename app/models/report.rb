@@ -1,10 +1,15 @@
 # All reporting methods for our servers, packages, and advisories.
 class Report
+  require 'fileutils'
+
+  UPGRADE_BASE_DIR = '/var/tmp/package-upgrades'.freeze
+  LAST_CHECKIN = 7.days.ago
+
   # Create a hash report of all servers and their installed packages.  If
   # given an optional hostname, limit the search to that one host.
   def installed_packages(hostname = '')
     report = {}
-    Server.where("last_checkin > ?", 7.days.ago).find_each do |server|
+    Server.where("last_checkin > ?", LAST_CHECKIN).find_each do |server|
       next if hostname != '' && server.hostname != hostname
       report[server.hostname] = {}
 
@@ -38,7 +43,7 @@ class Report
   def advisories(hostname = '', search_package = '')
     report = {}
     package_cache = {}
-    Server.where("last_checkin > ?", 7.days.ago).find_each do |server|
+    Server.where("last_checkin > ?", LAST_CHECKIN).find_each do |server|
       next unless hostname == '' || /#{hostname}/ =~ server.hostname
 
       packages = {}
@@ -53,7 +58,6 @@ class Report
         pkey = name + ' ' + version + ' ' + arch + ' ' + provider
         package_cache[pkey] = advisory_report(package) \
           unless package_cache.key?(pkey)
-        #advisories = package_cache[pkey]
         advisories = Marshal.load(Marshal.dump(package_cache[pkey]))
 
 
@@ -82,28 +86,73 @@ class Report
       next if package.servers.count == 0
       next if package.advisories.count == 0
 
+      # Get the servers that this package/version/etc applies to.
+      servers = []
+      package.servers.each do |server|
+        next unless server.last_checkin > LAST_CHECKIN
+        servers << server.hostname
+      end
+      next unless servers.count > 0
+
       name = package.name
       version = package.version
       arch = package.arch
       provider = package.provider
+
       report[name] = {} unless report.key?(name)
       report[name][version] = {} unless report[name].key?(version)
       report[name][version][arch] = {} unless report[name][version].key?(arch)
       report[name][version][arch][provider] = {} \
         unless report[name][version][arch].key?(name)
 
-      # Add the number of advisories for this package/version.
       advisories = package.advisories.count
       report[name][version][arch][provider]['advisories'] = advisories
-
-      # Add the list of servers that have this package installed.
-      report[name][version][arch][provider]['servers'] = []
-      package.servers.each do |server|
-        report[name][version][arch][provider]['servers'].push(server.hostname)
-      end
+      report[name][version][arch][provider]['servers'] = servers
     end
 
     report
+  end
+
+  # Create a set of files used to upgrade servers via mcollective.  This will
+  # be one file with mcollective commands, and a set of per-package files that
+  # let mcollective run only against the servers that need the updates.
+  def create_upgrade_files(search_package = '')
+    report = advisories_by_package(search_package)
+
+    # Write to a directory with the current time.
+    time = Time.new.strftime("%Y%m%d%H%M%S")
+    upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
+    FileUtils::mkdir_p(upgradedir)
+
+    runfile_fname = upgradedir + 'run-mco.sh'
+    runfile = File.new(runfile_fname, 'w')
+
+    # Chop out all the middle portion of the package report, as we only care
+    # about the package name and the servers here.
+    report.keys.sort.each do |name|
+      servers = []
+      report[name].keys.each do |version|
+        report[name][version].keys.each do |arch|
+          report[name][version][arch].keys.each do |provider|
+            next if provider == 'gem'
+            report[name][version][arch][provider]['servers'].each do |server|
+              servers << server
+            end
+          end
+        end
+      end
+
+      # Now write the upgrade command and servers to apply it to.
+      pkg_fname = upgradedir + "#{name}"
+      pkgfile = File.new(pkg_fname, 'w')
+      servers.uniq!
+      servers.sort.each do |server|
+        pkgfile.write("#{server}\n")
+      end
+      pkgfile.close
+      runfile.write("mco rpc package update package=#{name} --nodes #{name}\n")
+    end
+    runfile.close
   end
 
 private
