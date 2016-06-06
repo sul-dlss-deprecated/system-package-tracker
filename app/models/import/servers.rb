@@ -44,6 +44,11 @@ class Import::Servers
         status_types.each do |status|
           next unless server_yaml[type].key?(status)
           server_yaml[type][status].each_key do |pkg|
+
+            # Work around temporary bug in the package reports where they don't
+            # get the correct data structure.  Remove a week after 2016-06-03.
+            next if server_yaml[type][status][pkg].is_a?(Array)
+
             arch = server_yaml[type][status][pkg]['arch'] || 'none'
             server_yaml[type][status][pkg]['version'].each do |version|
               server_packages[hostname] << [pkg, version, arch, type, status,

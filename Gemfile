@@ -8,6 +8,8 @@ gem 'sqlite3'
 gem 'pg'
 gem 'activerecord-import'
 
+gem 'whenever', :require => false
+
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 gem 'jbuilder', '~> 2.0'
 # bundle exec rake doc:rails generates the API under doc/api.
