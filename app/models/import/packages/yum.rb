@@ -7,7 +7,7 @@ class Import
       # it is meant for.  If the version doesn't include the information needed
       # to figure that, return a 0.
       def centos_package_major_release(version)
-        m = /\.(el|centos|rhel)(\d)/i.match(version)
+        m = /\.(el|ael|centos|rhel)(\d)/i.match(version)
         return 0 if m.nil?
         m[2].to_i
       end

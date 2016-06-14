@@ -6,4 +6,9 @@ class Package < ActiveRecord::Base
 
   has_many :servers_to_packages, class_name: 'ServerToPackage'
   has_many :servers, through: :servers_to_packages
+
+  has_many :servers_to_pending_packages, -> { where status: 'pending' },
+                                         class_name: 'ServerToPackage'
+  has_many :pending_packages, through: :servers_to_pending_packages,
+                              class_name: 'Server', source: :server
 end

@@ -59,7 +59,7 @@ class Import::Packages::Gems
 
         # CVEs aren't usually listed here with the starting string.  Add it.
         cve = advisory['cve']
-        cve = 'CVE-' + cve unless cve =~ /^CVE-/
+        cve = 'CVE-' + cve unless cve.nil? || cve =~ /^CVE-/
 
         log.info("Ruby advisories: Adding advisory #{name} for #{gem}")
         adv = nil

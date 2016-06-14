@@ -2,6 +2,8 @@
 class Report
   require 'fileutils'
 
+  SCHEDULE = '/etc/server-reports/schedule'.freeze
+  PACKAGES = '/etc/server-reports/upgradable-packages'.freeze
   UPGRADE_BASE_DIR = '/var/tmp/package-upgrades'.freeze
   LAST_CHECKIN = 7.days.ago
 
@@ -60,7 +62,6 @@ class Report
           unless package_cache.key?(pkey)
         advisories = Marshal.load(Marshal.dump(package_cache[pkey]))
 
-
         # Now add any advisories to the record for this package/version.
         next if advisories.empty?
         packages[package.name] = {} unless packages.key?(package.name)
@@ -79,7 +80,7 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories_by_package(search_package = '')
+  def advisories_by_package(search_package = '', search_servers)
     report = {}
     Package.find_each do |package|
       next unless search_package == '' || /#{search_package}/ =~ package.name
@@ -89,6 +90,8 @@ class Report
       # Get the servers that this package/version/etc applies to.
       servers = []
       package.servers.each do |server|
+        next unless search_servers.empty? || search_servers.include?(server.hostname)
+        next unless server.last_checkin
         next unless server.last_checkin > LAST_CHECKIN
         servers << server.hostname
       end
@@ -113,49 +116,120 @@ class Report
     report
   end
 
+  # Search out packages based on pending updates and sort by the version they
+  # would currently go to.  This lets us explicitly set versions to upgrade to,
+  # so that we can generate lists of upgrades by month and not be surprised
+  # when a new upgrade comes out during the month.
+  def updates_by_package(search_package = '', search_servers)
+    updates = {}
+    Package.find_each do |package|
+      next unless search_package == '' || /#{search_package}/ =~ package.name
+      next if package.servers.count == 0
+      next if package.advisories.count == 0
+      next if package.provider == 'gem'
+
+      # Get the servers that this package/version/etc applies to.
+      name = package.name
+      package.servers.each do |server|
+        next unless search_servers.empty? || search_servers.include?(server.hostname)
+        next unless server.last_checkin
+        next unless server.last_checkin > LAST_CHECKIN
+
+        pending = Package.includes(:pending_packages).find_by(packages: { name: name }, servers: { hostname: server.hostname })
+        next if pending.nil?
+        updates[name] = {} unless updates.key?(name)
+        updates[name][pending.version] = [] \
+          unless updates[name].key?(pending.version)
+        updates[name][pending.version] << server.hostname
+      end
+    end
+
+    updates
+  end
+
   # Create a set of files used to upgrade servers via mcollective.  This will
   # be one file with mcollective commands, and a set of per-package files that
   # let mcollective run only against the servers that need the updates.
-  def create_upgrade_files(search_package = '')
-    report = advisories_by_package(search_package)
+  def create_upgrade_files(week, search_package = '')
+    schedule = load_schedule
+    packages = load_packages
+    current_servers = schedule[week]
+    raise "No valid servers" if current_servers.empty?
+    report = updates_by_package(search_package, current_servers)
 
-    # Write to a directory with the current time.
-    time = Time.new.strftime("%Y%m%d%H%M%S")
+    # Write to a directory for the given week.
+    time = date_of_next_week_count(week)
     upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
-    FileUtils::mkdir_p(upgradedir)
+    FileUtils.mkdir_p(upgradedir)
 
     runfile_fname = upgradedir + 'run-mco.sh'
     runfile = File.new(runfile_fname, 'w')
+    runfile.write("#/bin/bash\n\n")
+    runfile.write("# Data for week #{week}\n\n")
 
-    # Chop out all the middle portion of the package report, as we only care
-    # about the package name and the servers here.
+    # Go through the upgrade report and split it up into package/version bits.
     report.keys.sort.each do |name|
+      next unless packages.empty? || packages.include?(name)
       servers = []
-      report[name].keys.each do |version|
-        report[name][version].keys.each do |arch|
-          report[name][version][arch].keys.each do |provider|
-            next if provider == 'gem'
-            report[name][version][arch][provider]['servers'].each do |server|
-              servers << server
-            end
-          end
-        end
-      end
+      report[name].keys.each do |upgrade_version|
+        servers = report[name][upgrade_version]
+        next if servers.empty?
 
-      # Now write the upgrade command and servers to apply it to.
-      pkg_fname = upgradedir + "#{name}"
-      pkgfile = File.new(pkg_fname, 'w')
-      servers.uniq!
-      servers.sort.each do |server|
-        pkgfile.write("#{server}\n")
+        # Now write the upgrade command and servers to apply it to.
+        pkg_fname = upgradedir + name + '-' + upgrade_version
+        pkgfile = File.new(pkg_fname, 'w')
+        servers.uniq!
+        servers.sort.each do |server|
+          pkgfile.write("#{server}\n")
+        end
+        pkgfile.close
+        upgrade = "mco rpc package update package=#{name} " \
+          + "version=#{upgrade_version} --nodes #{name}-#{upgrade_version}\n"
+        runfile.write(upgrade)
       end
-      pkgfile.close
-      runfile.write("mco rpc package update package=#{name} --nodes #{name}\n")
     end
     runfile.close
+    File.chmod(0755, runfile_fname)
   end
 
 private
+
+  # Load the schedule of when to upgrade servers, turning into a hash of arrays
+  # with hash key the scheduled week (0..4) and the array each server that
+  # should be loaded during that week.
+  def load_schedule
+    schedule = {}
+    File.open(SCHEDULE, 'r') do |f|
+      f.each_line do |line|
+        next unless line =~ /\S/
+        line.chomp!
+        m = /^(\d+)\s+(\S+)/.match(line)
+        next if m.nil?
+        week = m[1].to_i
+        server = m[2]
+        schedule[week] = [] unless schedule.key?(week)
+        schedule[week].push(server)
+      end
+    end
+
+    schedule
+  end
+
+  # Load a list of packages that we consider valid for auto-upgrading.  This
+  # is just a simple textfile with one package per line.
+  def load_packages
+    packages = []
+    return packages unless File.readable?(PACKAGES)
+    File.open(PACKAGES, 'r') do |f|
+      f.each_line do |line|
+        next unless line =~ /\S/
+        line.chomp!
+        packages.push(line)
+      end
+    end
+
+    packages
+  end
 
   # Take a package and convert all advisories that belong to it into a hash,
   # adding a filtered version of the packages that advisory is fixed by.
@@ -189,4 +263,34 @@ private
 
     fixed
   end
+
+  # Use the week number of a given date to calculate a rotating week number
+  # from 1-4.
+  def find_week_count(count_date)
+    week_of_year = count_date.strftime('%V').to_i
+    week_count = week_of_year.modulo(4) + 1
+
+    week_count
+  end
+
+  # Given a week number of 1-4, calculate the next date for that week number,
+  # starting with a fresh cycle from week 1.  In other words, if we aren't
+  # currently on a week 1, skip ahead to the next week 1 before starting our
+  # count.
+  def date_of_next_week_count(find_week)
+    current = Time.current
+    week_count = find_week_count(current)
+    while week_count != 1
+      current += 1.week
+      week_count = find_week_count(current)
+    end
+
+    while week_count != find_week
+      current += 1.week
+      week_count = find_week_count(current)
+    end
+
+    current.strftime('%Y-%V')
+  end
+
 end
