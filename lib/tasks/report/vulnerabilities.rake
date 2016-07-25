@@ -17,13 +17,18 @@ namespace :report do
     # top.
     vulnerable_packages = {}
     vulnerabilities = {}
+    high_vulnerabilities = {}
     report.keys.sort.each do |host|
       report[host].keys.sort.each do |package|
         report[host][package].keys.sort.each do |version|
           unique_pkg = package + '-' + version
           vulnerable_packages[unique_pkg] = 1
           report[host][package][version].each do |advisory|
+            next if advisory['os_family'] == 'gem'
             vulnerabilities[advisory['name']] = 1
+            severity = advisory['severity']
+            high_vulnerabilities[advisory['name']] = 1 \
+              if severity == 'Important' || severity == 'Critical'
           end
         end
       end
@@ -32,12 +37,17 @@ namespace :report do
     # Print that summary.
     total_systems = Server.count
     affected_systems = report.keys.count
-    output << format("%-32s: %d/%d\n", 'Hosts with vulnerable packages',
+    output << format("%-32s: %d/%d\n", 'Hosts with one or more vulnerable RPMs',
                      affected_systems, total_systems)
-    output << format("%-32s: %d\n", 'Vulnerable packages',
+    output << format("%-32s: %d\n",
+                     'Total number of installed RPMs with open CVEs',
                      vulnerable_packages.keys.count)
-    output << format("%-32s: %d\n", 'Total vulnerabilities',
+    output << format("%-32s: %d\n",
+                     'Total number of unique CVEs across all systems',
                      vulnerabilities.keys.count)
+    output << format("%-32s: %d\n",
+                     'Number of high-level unique CVEs across all systems',
+                     high_vulnerabilities.keys.count)
     output << "\n"
 
     # Now do the actual report of each server and its advisories.

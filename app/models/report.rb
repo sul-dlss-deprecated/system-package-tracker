@@ -157,6 +157,11 @@ class Report
     raise "No valid servers" if current_servers.empty?
     report = updates_by_package(search_package, current_servers)
 
+    # Open cachefile of packages per server.
+    server_upgrades = {}
+    cache_fname = UPGRADE_BASE_DIR + '/packages-by-server.yaml'
+    server_upgrades = YAML.load_file(cache_fname) if File.readable?(cache_fname)
+
     # Write to a directory for the given week.
     time = date_of_next_week_count(week)
     upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
@@ -176,20 +181,29 @@ class Report
         next if servers.empty?
 
         # Now write the upgrade command and servers to apply it to.
-        pkg_fname = upgradedir + name + '-' + upgrade_version
+        package_ver = name + '-' + upgrade_version
+        pkg_fname = upgradedir + package_ver
         pkgfile = File.new(pkg_fname, 'w')
         servers.uniq!
         servers.sort.each do |server|
+          server_upgrades[server] = [] unless server_upgrades.key?(server)
+          server_upgrades[server] << package_ver
           pkgfile.write("#{server}\n")
         end
         pkgfile.close
         upgrade = "mco rpc package update package=#{name} " \
-          + "version=#{upgrade_version} --nodes #{name}-#{upgrade_version}\n"
+          + "version=#{upgrade_version} --nodes #{package_ver}\n"
         runfile.write(upgrade)
       end
     end
     runfile.close
     File.chmod(0755, runfile_fname)
+
+    # Finally save a cache of packages by server name for later.
+    cache_fname = UPGRADE_BASE_DIR + '/packages-by-server.yaml'
+    cachefile = File.new(cache_fname, 'w')
+    cachefile.write(server_upgrades.to_yaml)
+    cachefile.close
   end
 
 private
