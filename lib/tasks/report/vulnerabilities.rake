@@ -8,6 +8,7 @@ namespace :report do
     # Get the report data structure.  We'll build this into an output string
     # that we'll either print to stdout or email.
     report = Report.new.advisories(hostname, package_search)
+    upgraded = Report.new.last_upgrade
     output = ''
 
     # Iterate through the report to find unique vulnerabilties and vulnerable
@@ -36,23 +37,38 @@ namespace :report do
       end
     end
 
+    # Use the packages upgraded last week to find the unique servers upgraded.
+    servers = []
+    upgraded.keys.each do |package|
+      upgraded[package].each do |server|
+        servers.push(server)
+      end
+    end
+    servers.uniq!
+
     # Print that summary.
     total_systems = Server.count
     affected_systems = report.keys.count
-    output << format("%-32s: %d/%d\n", 'Hosts with one or more vulnerable RPMs',
+    output << format("%-52s: %d/%d\n", 'Hosts with one or more vulnerable RPMs',
                      affected_systems, total_systems)
-    output << format("%-32s: %d\n",
+    output << format("%-52s: %d\n",
                      'Total number of installed RPMs with open CVEs',
                      vulnerabilities_total)
-    output << format("%-32s: %d\n",
+    output << format("%-52s: %d\n",
                      'Unique number of installed RPMs with open CVEs',
                      vulnerable_packages.keys.count)
-    output << format("%-32s: %d\n",
+    output << format("%-52s: %d\n",
                      'Total number of unique CVEs across all systems',
                      vulnerabilities.keys.count)
-    output << format("%-32s: %d\n",
+    output << format("%-52s: %d\n",
                      'Number of high-level unique CVEs across all systems',
                      high_vulnerabilities.keys.count)
+    output << format("%-52s: %d\n",
+                     'Systems patched last week',
+                     servers.count)
+    output << format("%-52s: %d\n",
+                     'Unique packages patched last week',
+                     upgraded.keys.count)
     output << "\n"
 
     # Now do the actual report of each server and its advisories.
