@@ -6,7 +6,7 @@ namespace :report do
 
     # Get the report data structure.  We'll build this into an output string
     # that we'll either print to stdout or email.
-    report = Report.new.advisories_by_package(package_search)
+    report = Report.new.advisories_by_package(package_search, [], 'yum')
     output = ''
 
     # Now do the actual report of each server and its advisories.

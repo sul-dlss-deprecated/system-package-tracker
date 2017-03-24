@@ -42,7 +42,7 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories(hostname = '', search_package = '')
+  def advisories(hostname = '', search_package = '', search_provider = '')
     report = {}
     package_cache = {}
     Server.where("last_checkin > ?", LAST_CHECKIN).find_each do |server|
@@ -51,6 +51,7 @@ class Report
       packages = {}
       server.installed_packages.each do |package|
         next unless search_package == '' || /#{search_package}/ =~ package.name
+        next unless search_provider == '' || search_provider == package.provider
 
         name = package.name
         version = package.version
@@ -80,10 +81,12 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories_by_package(search_package = '', search_servers)
+  def advisories_by_package(search_package = '', search_servers = [],
+                            search_provider = '')
     report = {}
     Package.find_each do |package|
       next unless search_package == '' || /#{search_package}/ =~ package.name
+      next unless search_provider == '' || search_provider == package.provider
       next if package.servers.count == 0
       next if package.advisories.count == 0
 
