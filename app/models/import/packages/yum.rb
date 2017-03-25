@@ -1,7 +1,7 @@
 class Import
   class Packages
     class Yum
-      require 'rpm'
+      include RpmHelper
 
       # Given a centos package version, parse out and return the major OS release
       # it is meant for.  If the version doesn't include the information needed
@@ -46,7 +46,7 @@ class Import
         return nil if package_architecture == 'src'
 
         os_family = adv.os_family
-        advisory_ver = RPM::Version.new(package_version + '-' + package_subver)
+        advisory_ver = rpm_parse_evr(package_version + '-' + package_subver)
         Package.where(name: package_name, arch: package_architecture,
                       provider: 'yum', os_family: os_family).find_each do |p|
           # Skip this package unless it's for the same major release as the
@@ -57,9 +57,9 @@ class Import
 
           # And finally check to see if the package is older than the patched
           # version from the advisory, associating them if not.
-          check_ver = RPM::Version.new(p.version)
-          adv.advisories_to_packages.create(package_id: p.id) \
-            if advisory_ver.newer?(check_ver)
+          check_ver = rpm_parse_evr(p.version)
+          next if rpm_compareEVR(check_ver, advisory_ver) >= 0
+          adv.advisories_to_packages.create(package_id: p.id)
         end
       end
     end
