@@ -9,9 +9,6 @@ class Import
         require 'find'
         require 'yaml'
         require 'logger'
-        require 'activerecord-import'
-        require 'activerecord-import/base'
-        ActiveRecord::Import.require_adapter('pg')
 
         LOGFILE       = 'log/import.log'.freeze
         LOGLEVEL      = Logger::INFO
