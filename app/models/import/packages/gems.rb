@@ -6,9 +6,6 @@ class Import::Packages::Gems
   require 'yaml'
   require 'rubygems'
   require 'logger'
-  require 'activerecord-import'
-  require 'activerecord-import/base'
-  ActiveRecord::Import.require_adapter('pg')
 
   LOGFILE       = 'log/import.log'.freeze
   LOGLEVEL      = Logger::INFO

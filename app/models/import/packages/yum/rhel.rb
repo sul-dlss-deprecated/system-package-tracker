@@ -9,9 +9,6 @@ class Import
         require 'find'
         require 'yaml'
         require 'logger'
-        require 'activerecord-import'
-        require 'activerecord-import/base'
-        ActiveRecord::Import.require_adapter('pg')
 
         LOGFILE       = 'log/import.log'.freeze
         LOGLEVEL      = Logger::INFO
@@ -23,7 +20,7 @@ class Import
         RHEL_ADV_DIR = 'rhel-cvrf'.freeze
 
         OVAL_LOCAL = '/home/reporting/com.redhat.rhsa-all.xml'.freeze
-        OVAL_REMOTE_HOST = 'www.redhat.com'.freeze
+        OVAL_REMOTE_HOST = 'https://www.redhat.com'.freeze
         OVAL_REMOTE_PATH = '/security/data/oval/com.redhat.rhsa-all.xml.bz2'.freeze
 
         # Search the advisory directory, skipping advisories for gems we don't
@@ -59,18 +56,19 @@ class Import
         def import_source
           tmpfile = OVAL_LOCAL + '.bz2'
           content = ''
+          uri = URI.parse(OVAL_REMOTE_HOST + OVAL_REMOTE_PATH)
+
           if PROXY_ADDR == ''
-            Net::HTTP.start(OVAL_REMOTE_HOST) do |http|
-              content = http.get(OVAL_REMOTE_PATH).body
-            end
+            http = Net::HTTP.new(uri.host, uri.port)
           else
-            Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(OVAL_REMOTE_HOST) do |http|
-              content = http.get(OVAL_REMOTE_PATH).body
-            end
+            http = Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).new(uri.host, uri.port)
           end
+          http.use_ssl = true
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          content = http.get(uri.path).body
 
           open(tmpfile, 'wb') do |file|
-           file.write(content)
+            file.write(content)
           end
           system('bunzip2', '--force', tmpfile)
         end
@@ -93,7 +91,7 @@ class Import
               advisory['kind'] = 'Security Advisory'
               advisory['os_family'] = 'rhel'
               advisory['cve'] = d.at_xpath('metadata/advisory/cve').content
-              
+
               advisory['upstream_id'] = ''
               m = /^(\S+):/.match(advisory['name'])
               advisory['upstream_id'] = m[1] unless m.nil?
