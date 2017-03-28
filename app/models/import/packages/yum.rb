@@ -45,6 +45,9 @@ class Import
         package_architecture = m[4]
         return nil if package_architecture == 'src'
 
+        # Add an epoch if it's not in the package version.
+        package_version = '0:' + package_version unless package_version =~ /:/
+
         os_family = adv.os_family
         advisory_ver = rpm_parse_evr(package_version + '-' + package_subver)
         Package.where(name: package_name, arch: package_architecture,
