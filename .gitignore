@@ -22,3 +22,5 @@
 # This is distributed via capistrano, so any here will just be for testing.
 /config/database.yml
 
+# Ignore things coveralls creates
+/coverage
