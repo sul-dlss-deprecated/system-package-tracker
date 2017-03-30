@@ -17,8 +17,8 @@ namespace :report do
     gem_header << "might be including them to update, or ask the operations\n"
     gem_header << "group for help.\n"
 
-    # Temp filler while Tony does puppet integration.
-    hosts = [stack]
+    # Query puppetdb on a stack fact
+    hosts = Stack.members(stack)
 
     # Go through each host, get kernel and gem advisories, and make the report.
     output = ''
