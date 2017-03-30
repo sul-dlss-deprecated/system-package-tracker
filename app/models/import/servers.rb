@@ -2,6 +2,8 @@
 class Import::Servers
   require 'yaml'
   require 'logger'
+  require 'activerecord-import'
+  require 'activerecord-import/base'
 
   SERVER_FILES  = '/var/lib/package-reports/*.yaml'.freeze
   LOGFILE       = 'log/import.log'.freeze

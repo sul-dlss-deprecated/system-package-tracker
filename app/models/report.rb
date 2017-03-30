@@ -42,7 +42,7 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories(hostname = '', search_package = '')
+  def advisories(hostname = '', search_package = '', search_provider = '')
     report = {}
     package_cache = {}
     Server.where("last_checkin > ?", LAST_CHECKIN).find_each do |server|
@@ -51,6 +51,7 @@ class Report
       packages = {}
       server.installed_packages.each do |package|
         next unless search_package == '' || /#{search_package}/ =~ package.name
+        next unless search_provider == '' || search_provider == package.provider
 
         name = package.name
         version = package.version
@@ -80,10 +81,12 @@ class Report
   # the servers with advisories, the names and versions of the affected
   # packages, and the version required to fix the advisory.  This returns a
   # hash that can be used for web or text display.
-  def advisories_by_package(search_package = '', search_servers)
+  def advisories_by_package(search_package = '', search_servers = [],
+                            search_provider = '')
     report = {}
     Package.find_each do |package|
       next unless search_package == '' || /#{search_package}/ =~ package.name
+      next unless search_provider == '' || search_provider == package.provider
       next if package.servers.count == 0
       next if package.advisories.count == 0
 
@@ -206,6 +209,24 @@ class Report
     cachefile.close
   end
 
+  # Find out what was done in the previous week's upgrade.  This searches the
+  # upgrade dir for all package files and their contents of servers.  It does
+  # assume that all upgrades were successful, since parsing the mco output is
+  # a bit difficult.
+  def last_upgrade
+    time = date_of_last_week
+    upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
+
+    packages = {}
+    Dir.foreach(upgradedir) do |fname|
+      next if fname =~ /^\./
+      next if fname =~ /^run-mco/
+      packages[fname] = IO.readlines(upgradedir + fname)
+    end
+
+    packages
+  end
+
 private
 
   # Load the schedule of when to upgrade servers, turning into a hash of arrays
@@ -304,6 +325,13 @@ private
       week_count = find_week_count(current)
     end
 
+    current.strftime('%Y-%V')
+  end
+
+  # Find the year and week count for last week, used to get upgrade data.
+  def date_of_last_week
+    current = Time.current
+    current -= 1.week
     current.strftime('%Y-%V')
   end
 
