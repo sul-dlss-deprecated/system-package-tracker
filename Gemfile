@@ -21,6 +21,9 @@ gem 'git'
 # Access an IRB console on exception pages or by using <%= console %> in views
 gem 'web-console', '~> 2.0', group: :development
 
+# puppetdb-ruby queries for what nodes belong to a stack
+gem 'puppetdb-ruby'
+
 group :deployment do
   gem 'capistrano', '~> 3.0'
   gem 'capistrano-rails' # or other gems as appropriate
