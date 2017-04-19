@@ -24,6 +24,9 @@ gem 'web-console', '~> 2.0', group: :development
 # puppetdb-ruby queries for what nodes belong to a stack
 gem 'puppetdb-ruby'
 
+# webmock to support vcr
+gem 'webmock'
+
 group :deployment do
   gem 'capistrano', '~> 3.0'
   gem 'capistrano-rails' # or other gems as appropriate
@@ -37,6 +40,7 @@ group :development, :test do
   gem 'byebug'
   gem 'rspec-rails', '~> 3.0'
   gem 'dlss_cops'
+  gem 'vcr'
 end
 
 group :test do

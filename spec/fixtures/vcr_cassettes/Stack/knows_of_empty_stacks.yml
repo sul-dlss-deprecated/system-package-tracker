@@ -1,0 +1,405 @@
+---
+http_interactions:
+- request:
+    method: get
+    uri: http://sulpuppet-db.stanford.edu:8080/v3/facts?query=%5B%22=%22,%22name%22,%22stack%22%5D
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 19 Apr 2017 21:49:46 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding, User-Agent
+      Content-Length:
+      - '282'
+      Server:
+      - Jetty(9.2.z-SNAPSHOT)
+    body:
+      encoding: ASCII-8BIT
+      string: |-
+        [ {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-dev.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-stage.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-prod-a.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-c.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-b.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-db.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-worker-prod-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-mysql-stage.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-prod-b.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-mysql-prod.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-stage-b.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-c.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-b.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-b.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-worker-stage-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sulelk-dev-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-kibana-prod.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-stage-a.stanford.edu"
+        }, {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-db.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-f.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-c.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-d.stanford.edu"
+        }, {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-db-dev.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-d.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-e.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-d.stanford.edu"
+        } ]
+    http_version: 
+  recorded_at: Wed, 19 Apr 2017 21:49:46 GMT
+- request:
+    method: get
+    uri: http://sulpuppet-db.stanford.edu:8080/v3/facts?query=%5B%22and%22,%5B%22=%22,%22name%22,%22stack%22%5D,%5B%22=%22,%22value%22,%22sulreports%22%5D%5D
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 19 Apr 2017 21:49:46 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding, User-Agent
+      Content-Length:
+      - '100'
+      Server:
+      - Jetty(9.2.z-SNAPSHOT)
+    body:
+      encoding: ASCII-8BIT
+      string: |-
+        [ {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-dev.stanford.edu"
+        }, {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-db-dev.stanford.edu"
+        }, {
+          "value" : "sulreports",
+          "name" : "stack",
+          "certname" : "sulreports-db.stanford.edu"
+        } ]
+    http_version: 
+  recorded_at: Wed, 19 Apr 2017 21:49:46 GMT
+- request:
+    method: get
+    uri: http://sulpuppet-db.stanford.edu:8080/v3/facts?query=%5B%22and%22,%5B%22=%22,%22name%22,%22stack%22%5D,%5B%22=%22,%22value%22,%22puppet%22%5D%5D
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 19 Apr 2017 21:49:46 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding, User-Agent
+      Content-Length:
+      - '111'
+      Server:
+      - Jetty(9.2.z-SNAPSHOT)
+    body:
+      encoding: ASCII-8BIT
+      string: |-
+        [ {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-a.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-d.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-db.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-c.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-stage.stanford.edu"
+        }, {
+          "value" : "puppet",
+          "name" : "stack",
+          "certname" : "sulpuppet-b.stanford.edu"
+        } ]
+    http_version: 
+  recorded_at: Wed, 19 Apr 2017 21:49:46 GMT
+- request:
+    method: get
+    uri: http://sulpuppet-db.stanford.edu:8080/v3/facts?query=%5B%22and%22,%5B%22=%22,%22name%22,%22stack%22%5D,%5B%22=%22,%22value%22,%22exhibits%22%5D%5D
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 19 Apr 2017 21:49:46 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding, User-Agent
+      Content-Length:
+      - '145'
+      Server:
+      - Jetty(9.2.z-SNAPSHOT)
+    body:
+      encoding: ASCII-8BIT
+      string: |-
+        [ {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-prod-b.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-mysql-stage.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-worker-prod-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-stage-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-mysql-prod.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-prod-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-worker-stage-a.stanford.edu"
+        }, {
+          "value" : "exhibits",
+          "name" : "stack",
+          "certname" : "exhibits-stage-b.stanford.edu"
+        } ]
+    http_version: 
+  recorded_at: Wed, 19 Apr 2017 21:49:46 GMT
+- request:
+    method: get
+    uri: http://sulpuppet-db.stanford.edu:8080/v3/facts?query=%5B%22and%22,%5B%22=%22,%22name%22,%22stack%22%5D,%5B%22=%22,%22value%22,%22elk%22%5D%5D
+    body:
+      encoding: US-ASCII
+      string: ''
+    headers:
+      Accept-Encoding:
+      - gzip;q=1.0,deflate;q=0.6,identity;q=0.3
+      Accept:
+      - "*/*"
+      User-Agent:
+      - Ruby
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      Date:
+      - Wed, 19 Apr 2017 21:49:46 GMT
+      Content-Type:
+      - application/json; charset=utf-8
+      Vary:
+      - Accept-Encoding, User-Agent
+      Content-Length:
+      - '165'
+      Server:
+      - Jetty(9.2.z-SNAPSHOT)
+    body:
+      encoding: ASCII-8BIT
+      string: |-
+        [ {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-kibana-prod.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-b.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-c.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-d.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-c.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sulelk-dev-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-d.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-b.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-f.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-a.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-elasticsearch-prod-e.stanford.edu"
+        }, {
+          "value" : "elk",
+          "name" : "stack",
+          "certname" : "sul-logstash-prod-a.stanford.edu"
+        } ]
+    http_version: 
+  recorded_at: Wed, 19 Apr 2017 21:49:46 GMT
+recorded_with: VCR 3.0.3

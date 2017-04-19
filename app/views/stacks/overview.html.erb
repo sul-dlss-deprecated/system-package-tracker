@@ -1,0 +1,15 @@
+Here are the stacks we have populated:
+<% Stack.all.map do |stack| %>
+  <%= stack %>:
+    <% Stack.members(stack).sort.map do |member| %><%= member %>
+    <% end  %>
+<% end %>
+<% unless Stack.empties == [] %>
+  These stacks have no members:
+  <% Stack.empties.sort.map do |stack| %>
+    <%= stack %>
+  <% end %>
+<% end %>
+These nodes belong to no stack:
+  <% Stack.orphans.sort.map do |orphan| %><%= orphan %>
+  <% end %>
