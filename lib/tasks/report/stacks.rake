@@ -27,7 +27,9 @@ namespace :report do
       gems = Report.new.advisories(hostname, '', 'gem')
       next if kernel.empty? && gems.empty?
 
+      output << "==================================\n"
       output << format("%s\n", hostname)
+      output << "==================================\n"
       output << report_stanza(kernel, kernel_header)
       output << report_stanza(gems, gem_header)
       output << "\n"
