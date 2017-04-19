@@ -4,7 +4,7 @@ lock '3.8.0'
 set :application, 'server-reports'
 set :repo_url, 'http://github.com/sul-dlss/system-package-tracker.git'
 
-set :branch, 'jonrober'
+set :branch, ENV.fetch('BRANCH', 'master')
 
 #:user
 #:home_dir
