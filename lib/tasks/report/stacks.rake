@@ -42,4 +42,11 @@ namespace :report do
       print output
     end
   end
+
+  desc 'General overview of the extent of stacks'
+  task :stacks_overview, [] => :environment do |_t, args|
+    string = Rails.root.join("app/views/stacks/overview.html.erb").read
+    result = ERB.new(string).result(binding)
+    print result
+  end
 end
