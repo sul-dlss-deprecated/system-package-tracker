@@ -13,8 +13,9 @@ class ReportMailer < ApplicationMailer
 
   def stacks_email(stack, report)
     addresses = YAML.load_file('config/stacks.yml')
-    abort "no email set for stack #{stack}" unless addresses.key?(stack)
-    email_to = addresses[stack]
+    shortstack = stack.sub(/-(dev|prod|stage)$/, '')
+    abort "no email set for stack #{shortstack}" unless addresses.key?(shortstack)
+    email_to = addresses[shortstack]
 
     subject = "Security Patch Status for #{stack} stack"
     mail(to: email_to, subject: subject, body: report)
