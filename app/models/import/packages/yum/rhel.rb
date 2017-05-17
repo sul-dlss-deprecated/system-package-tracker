@@ -92,7 +92,11 @@ class Import
               advisory['severity'] = d.at_xpath('metadata/advisory/severity').content
               advisory['kind'] = 'Security Advisory'
               advisory['os_family'] = 'rhel'
-              advisory['cve'] = d.at_xpath('metadata/advisory/cve').content
+              if d.at_xpath('metadata/advisory/cve').nil?
+                advisory['cve'] = ''
+              else
+                advisory['cve'] = d.at_xpath('metadata/advisory/cve').content
+              end
 
               advisory['upstream_id'] = ''
               m = /^(\S+):/.match(advisory['name'])
