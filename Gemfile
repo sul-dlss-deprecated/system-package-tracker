@@ -36,7 +36,6 @@ group :development, :test do
   # Call 'byebug' anywhere in the code to get a debugger console
   gem 'byebug'
   gem 'rspec-rails', '~> 3.0'
-  gem 'dlss_cops'
 end
 
 group :test do
