@@ -154,21 +154,30 @@ class Report
   # be one file with mcollective commands, and a set of per-package files that
   # let mcollective run only against the servers that need the updates.
   def create_upgrade_files(week, search_package = '')
+
+    # Find the directory for the given week.  If it already exists, then give
+    # a warning and skip this run.
+    time = date_of_next_week_count(week)
+    upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
+    if Dir.exist?(upgradedir)
+      warn "Skipping week #{week}, #{upgradedir} already exists"
+      return
+    else
+      FileUtils.mkdir_p(upgradedir)
+    end
+
+    # Load the schedule, packages, and servers in the given week.
     schedule = load_schedule
     packages = load_packages
     current_servers = schedule[week]
     raise "No valid servers" if current_servers.empty?
+
     report = updates_by_package(search_package, current_servers)
 
     # Open cachefile of packages per server.
     server_upgrades = {}
     cache_fname = UPGRADE_BASE_DIR + '/packages-by-server.yaml'
     server_upgrades = YAML.load_file(cache_fname) if File.readable?(cache_fname)
-
-    # Write to a directory for the given week.
-    time = date_of_next_week_count(week)
-    upgradedir = "#{UPGRADE_BASE_DIR}/#{time}/"
-    FileUtils.mkdir_p(upgradedir)
 
     runfile_fname = upgradedir + 'run-mco.sh'
     runfile = File.new(runfile_fname, 'w')
