@@ -115,7 +115,7 @@ GEM
     net-ssh (5.2.0)
     nokogiri (1.10.1)
       mini_portile2 (~> 2.4.0)
-    pg (0.21.0)
+    pg (0.20.0)
     puppetdb-ruby (1.1.1)
       httparty
     rack (1.6.11)
@@ -202,7 +202,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord-import (>= 0.2.0)
+  activerecord-import (~> 1.0)
   byebug
   capistrano (~> 3.0)
   capistrano-bundler
@@ -212,7 +212,7 @@ DEPENDENCIES
   dlss-capistrano
   git
   jbuilder (~> 2.0)
-  pg (~> 0.20)
+  pg (= 0.20)
   puppetdb-ruby
   rails (= 4.2.11.1)
   rspec-rails (~> 3.0)
