@@ -84,6 +84,11 @@ class Import::Packages::Gems
         # to parse if the packages match.
         packages.each do |package|
           matched = 0
+
+          # Clean up some occasional strange additions to the package version.
+          package.version.gsub!(/[ :a-z]/, '')
+          package.version.gsub!(/\.$/, '')
+
           advisory['patched_versions'].each do |version|
             pv = Gem::Version.new(package.version)
             if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)
