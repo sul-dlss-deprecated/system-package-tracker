@@ -24,6 +24,9 @@ gem 'web-console', '~> 2.0', group: :development
 # puppetdb-ruby queries for what nodes belong to a stack
 gem 'puppetdb-ruby'
 
+gem 'nokogiri', '>= 1.10.5'
+gem 'loofah', '>= 2.3.1'
+
 group :deployment do
   gem 'capistrano', '~> 3.0'
   gem 'capistrano-rails' # or other gems as appropriate
