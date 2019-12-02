@@ -2,7 +2,7 @@ require 'puppetdb'
 class Stack
 
   def self.endpoint
-    'http://sulpuppet4-db.stanford.edu:8080'
+    'http://sulpuppet-db.stanford.edu:8080'
   end
 
   # in eyaml a fact for a machine looks like:

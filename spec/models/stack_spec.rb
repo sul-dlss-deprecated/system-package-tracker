@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Stack, type: :model do
 
   it 'knows where puppetdb is' do
-    expect(Stack.endpoint).to eq('http://sulpuppet4-db.stanford.edu:8080')
+    expect(Stack.endpoint).to eq('http://sulpuppet-db.stanford.edu:8080')
   end
 
   it 'knows a machine is in a stack' do
