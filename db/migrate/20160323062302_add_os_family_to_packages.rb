@@ -1,6 +1,6 @@
 # Add the OS family to packages, so that we can track the RHEL and centos
 # packages against separate vulnerabilities.
-class AddOsFamilyToPackages < ActiveRecord::Migration
+class AddOsFamilyToPackages < ActiveRecord::Migration[4.2]
   def change
     add_column :packages, :os_family, :string
     remove_index :packages, column: [:name, :version, :arch, :provider]

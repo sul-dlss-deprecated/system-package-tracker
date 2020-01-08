@@ -1,5 +1,5 @@
 # Initial creation of the table containing package advisory data.
-class CreateAdvisories < ActiveRecord::Migration
+class CreateAdvisories < ActiveRecord::Migration[4.2]
   def change
     create_table :advisories do |t|
       t.string :name

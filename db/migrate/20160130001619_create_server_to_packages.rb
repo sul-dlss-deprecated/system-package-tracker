@@ -1,5 +1,5 @@
 # Initial creation of the table associating servers and their packages.
-class CreateServerToPackages < ActiveRecord::Migration
+class CreateServerToPackages < ActiveRecord::Migration[4.2]
   def change
     create_table :server_to_packages do |t|
       t.integer :server_id

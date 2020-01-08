@@ -101,7 +101,7 @@ class Import::Servers
       end
     end
     log.info('Servers: *** Clearing old server packages')
-    ServerToPackage.delete_all(server_id: delete_server_packages)
+    ServerToPackage.delete(server_id: delete_server_packages)
     log.info('Servers: *** Refreshing server packages')
     columns = %w(server_id package_id status)
     ServerToPackage.import(columns, import_server_packages)

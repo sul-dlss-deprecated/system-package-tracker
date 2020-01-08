@@ -1,5 +1,5 @@
 # Initial creation of our server table.
-class CreateServers < ActiveRecord::Migration
+class CreateServers < ActiveRecord::Migration[4.2]
   def change
     create_table :servers do |t|
       t.string :hostname

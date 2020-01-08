@@ -1,5 +1,5 @@
 # Initial creation of our packages table.
-class CreatePackages < ActiveRecord::Migration
+class CreatePackages < ActiveRecord::Migration[4.2]
   def change
     create_table :packages do |t|
       t.string :name

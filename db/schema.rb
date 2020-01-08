@@ -1,4 +1,3 @@
-# encoding: UTF-8
 # This file is auto-generated from the current state of the database. Instead
 # of editing this file, please use the migrations feature of Active Record to
 # incrementally modify your database, and then regenerate this schema definition.
@@ -11,63 +10,60 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20160519173130) do
+ActiveRecord::Schema.define(version: 2016_05_19_173130) do
 
   create_table "advisories", force: :cascade do |t|
-    t.string   "name"
-    t.string   "description"
-    t.string   "issue_date"
-    t.string   "references"
-    t.string   "kind"
-    t.string   "severity"
-    t.string   "os_family"
-    t.text     "fix_versions"
-    t.datetime "created_at",   null: false
-    t.datetime "updated_at",   null: false
-    t.string   "title"
-    t.string   "cve"
-    t.string   "upstream_id"
+    t.string "name"
+    t.string "description"
+    t.string "issue_date"
+    t.string "references"
+    t.string "kind"
+    t.string "severity"
+    t.string "os_family"
+    t.text "fix_versions"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "title"
+    t.string "cve"
+    t.string "upstream_id"
+    t.index ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true
   end
 
-  add_index "advisories", ["name", "os_family"], name: "index_advisories_on_name_and_os_family", unique: true
-
   create_table "advisory_to_packages", force: :cascade do |t|
-    t.integer  "package_id"
-    t.integer  "advisory_id"
-    t.datetime "created_at",  null: false
-    t.datetime "updated_at",  null: false
+    t.integer "package_id"
+    t.integer "advisory_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "packages", force: :cascade do |t|
-    t.string   "name"
-    t.string   "version"
-    t.string   "arch"
-    t.string   "provider"
+    t.string "name"
+    t.string "version"
+    t.string "arch"
+    t.string "provider"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.string   "os_family"
+    t.string "os_family"
+    t.index ["name", "version", "arch", "provider", "os_family"], name: "unique_pkg", unique: true
+    t.index ["name"], name: "index_packages_on_name"
   end
 
-  add_index "packages", ["name", "version", "arch", "provider", "os_family"], name: "unique_pkg", unique: true
-  add_index "packages", ["name"], name: "index_packages_on_name"
-
   create_table "server_to_packages", force: :cascade do |t|
-    t.integer  "server_id"
-    t.integer  "package_id"
-    t.string   "status"
+    t.integer "server_id"
+    t.integer "package_id"
+    t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "servers", force: :cascade do |t|
-    t.string   "hostname"
-    t.string   "os_family"
-    t.string   "os_release"
+    t.string "hostname"
+    t.string "os_family"
+    t.string "os_release"
     t.datetime "last_checkin"
-    t.datetime "created_at",   null: false
-    t.datetime "updated_at",   null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["hostname"], name: "index_servers_on_hostname", unique: true
   end
-
-  add_index "servers", ["hostname"], name: "index_servers_on_hostname", unique: true
 
 end
