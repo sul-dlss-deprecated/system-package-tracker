@@ -30,10 +30,10 @@ class Import::Servers
 
       if Server.exists?(hostname: hostname)
         log.info("Servers: Updating #{hostname}")
-        servers_update << [hostname, os_release, os_family, last_checkin]
+        servers_update << [hostname, os_release, os_family, Time.zone.at(last_checkin)]
       else
         log.info("Servers: Adding #{hostname}")
-        servers << [hostname, os_release, os_family, last_checkin]
+        servers << [hostname, os_release, os_family, Time.zone.at(last_checkin)]
       end
       server_packages[hostname] = []
 
