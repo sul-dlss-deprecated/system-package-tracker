@@ -6,7 +6,7 @@ gem 'rails', '5.2.4.1'
 # Database setup.
 gem 'sqlite3', '~> 1.3.0'
 gem 'pg', '0.20'
-gem 'activerecord-import', '~> 1.0'
+gem 'activerecord-import', '1.0.3'
 
 gem 'whenever', :require => false
 
