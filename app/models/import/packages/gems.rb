@@ -89,6 +89,7 @@ class Import::Packages::Gems
           package.version.gsub!(/[ :a-z]/, '')
           package.version.gsub!(/\.$/, '')
 
+          next unless advisory.key?('patched_versions')
           advisory['patched_versions'].each do |version|
             pv = Gem::Version.new(package.version)
             if Gem::Requirement.new(version.split(',')).satisfied_by?(pv)

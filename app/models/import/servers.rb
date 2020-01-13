@@ -26,7 +26,7 @@ class Import::Servers
       hostname = server_yaml['system']['hostname']
       os_release = server_yaml['system']['release']
       os_family = generate_os_family(os_release)
-      last_checkin = server_yaml['system']['lastrun']
+      last_checkin = server_yaml['system']['lastrun'] || 0
 
       if Server.exists?(hostname: hostname)
         log.info("Servers: Updating #{hostname}")
