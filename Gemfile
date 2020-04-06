@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '5.2.4.1'
+gem 'rails', '5.2.4.2'
 
 # Database setup.
 gem 'sqlite3', '~> 1.3.0'
@@ -24,7 +24,7 @@ gem 'web-console', '~> 2.0', group: :development
 # puppetdb-ruby queries for what nodes belong to a stack
 gem 'puppetdb-ruby'
 
-gem 'nokogiri', '>= 1.10.5'
+gem 'nokogiri', '>= 1.10.8'
 gem 'loofah', '>= 2.3.1'
 
 group :deployment do
