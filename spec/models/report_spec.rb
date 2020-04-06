@@ -50,4 +50,25 @@ RSpec.describe Report, type: :model do
       expect(report).to include(report_test)
     end
   end
+
+  describe "#load_schedule" do
+    it "has output match" do
+      puppet_response = [
+        { 'certname' => 'dev.stanford.edu', 'stack_level' => 'dev'},
+        { 'certname' => 'qa.stanford.edu', 'stack_level' => 'qa'},
+        { 'certname' => 'stage.stanford.edu', 'stack_level' => 'stage'},
+        { 'certname' => 'test.stanford.edu', 'stack_level' => 'test'},
+        { 'certname' => 'prod.stanford.edu', 'stack_level' => 'prod'},
+        { 'certname' => 'week4.stanford.edu', 'upgrade_week' => 4}
+      ]
+      report = described_class.new
+      allow(report).to receive(:get_puppet_facts).and_return(puppet_response)
+      schedule = report.load_puppet_schedule
+      expect(schedule.keys.count).to eq(4)
+      expect(schedule[1].sort).to eq(['dev.stanford.edu', 'qa.stanford.edu'])
+      expect(schedule[2].sort).to eq(['stage.stanford.edu', 'test.stanford.edu'])
+      expect(schedule[3].sort).to eq(['prod.stanford.edu'])
+      expect(schedule[4]).to eq(['week4.stanford.edu'])
+    end
+  end
 end

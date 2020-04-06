@@ -1,6 +1,7 @@
 # All reporting methods for our servers, packages, and advisories.
 class Report
   require 'fileutils'
+  require 'puppetdb'
 
   SCHEDULE = '/etc/server-reports/schedule'.freeze
   PACKAGES = '/etc/server-reports/upgradable-packages'.freeze
@@ -167,7 +168,7 @@ class Report
     end
 
     # Load the schedule, packages, and servers in the given week.
-    schedule = load_schedule
+    schedule = load_puppet_schedule
     packages = load_packages
     current_servers = schedule[week]
     raise "No valid servers" if current_servers.empty?
@@ -236,27 +237,40 @@ class Report
     packages
   end
 
-private
+  # Generate a schedule of when servers should run upgrades, based on puppet
+  # facts.  If they have an explicit upgrade week specified, use that,
+  # otherwise assume based on the stack level, with dev/qa being week 1,
+  # stage/test week 2, and all else week 3.
+  def load_puppet_schedule
+    response = get_puppet_facts
 
-  # Load the schedule of when to upgrade servers, turning into a hash of arrays
-  # with hash key the scheduled week (0..4) and the array each server that
-  # should be loaded during that week.
-  def load_schedule
     schedule = {}
-    File.open(SCHEDULE, 'r') do |f|
-      f.each_line do |line|
-        next unless line =~ /\S/
-        line.chomp!
-        m = /^(\d+)\s+(\S+)/.match(line)
-        next if m.nil?
-        week = m[1].to_i
-        server = m[2]
-        schedule[week] = [] unless schedule.key?(week)
-        schedule[week].push(server)
+    response.each do |r|
+      host = r['certname']
+      level = r['stack_level']
+      if r.key?('upgrade_week')
+        week = r['upgrade_week']
+      elsif level == 'dev' or level == 'qa'
+        week = 1
+      elsif level == 'stage' or level == 'test'
+        week = 2
+      else
+        week = 3
       end
+
+      schedule[week] = [] unless schedule.key?(week)
+      schedule[week].push(host)
     end
 
     schedule
+  end
+
+private
+
+  def get_puppet_facts
+    endpoint = 'http://sulpuppet-db.stanford.edu:8080'
+    client = PuppetDB::Client.new(server: endpoint)
+    client.request('facts').data
   end
 
   # Load a list of packages that we consider valid for auto-upgrading.  This
