@@ -4,8 +4,6 @@ namespace :report do
     package_search = ENV['PACKAGE'] || ''
 
     # Build the reports for each week.
-    (1..4).each do |week|
-      Report.new.create_upgrade_files(week, package_search)
-    end
+    Report.new.create_upgrade_files(package_search)
   end
 end

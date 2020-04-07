@@ -126,10 +126,9 @@ class Report
   # when a new upgrade comes out during the month.
   def updates_by_package(search_package = '', search_servers)
     updates = {}
-    Package.find_each do |package|
+    Package.joins(:advisories).includes(:advisories).each do |package|
       next unless search_package == '' || /#{search_package}/ =~ package.name
       next if package.servers.count == 0
-      next if package.advisories.count == 0
       next if package.provider == 'gem'
 
       # Get the servers that this package/version/etc applies to.
@@ -151,10 +150,26 @@ class Report
     updates
   end
 
+  # Create all upgrade files for the next series of four weeks.  First get all
+  # packages needing upgrades in order to avoid doing expensive lookup four
+  # times, then feed to a function to actually create the files.
+  def create_upgrade_files(search_package = '')
+    advisories = updates_by_package(search_package)
+    schedule = load_puppet_schedule
+    (1..4).each do |week|
+      unless schedule.key?(week)
+        warn "No valid servers for week #{week}"
+        return
+      end
+      create_upgrade_files_for_week(week, search_package, advisories, schedule[week])
+    end
+  end
+
+
   # Create a set of files used to upgrade servers via mcollective.  This will
   # be one file with mcollective commands, and a set of per-package files that
   # let mcollective run only against the servers that need the updates.
-  def create_upgrade_files(week, search_package = '')
+  def create_upgrade_files_for_week(week, search_package = '', advisories, current_servers)
 
     # Find the directory for the given week.  If it already exists, then give
     # a warning and skip this run.
@@ -167,14 +182,6 @@ class Report
       FileUtils.mkdir_p(upgradedir)
     end
 
-    # Load the schedule, packages, and servers in the given week.
-    schedule = load_puppet_schedule
-    packages = load_packages
-    current_servers = schedule[week]
-    raise "No valid servers" if current_servers.empty?
-
-    report = updates_by_package(search_package, current_servers)
-
     # Open cachefile of packages per server.
     server_upgrades = {}
     cache_fname = UPGRADE_BASE_DIR + '/packages-by-server.yaml'
@@ -186,11 +193,17 @@ class Report
     runfile.write("# Data for week #{week}\n\n")
 
     # Go through the upgrade report and split it up into package/version bits.
-    report.keys.sort.each do |name|
+    packages = load_packages
+    advisories.keys.sort.each do |name|
       next unless packages.empty? || packages.include?(name)
       servers = []
-      report[name].keys.each do |upgrade_version|
-        servers = report[name][upgrade_version]
+      advisories[name].keys.each do |upgrade_version|
+
+        # Only act on servers that are in the current week.
+        servers = []
+        advisories[name][upgrade_version].each do |server|
+          servers.push(server) if current_servers.include?(server)
+        end
         next if servers.empty?
 
         # Now write the upgrade command and servers to apply it to.
@@ -245,11 +258,10 @@ class Report
     response = get_puppet_facts
 
     schedule = {}
-    response.each do |r|
-      host = r['certname']
-      level = r['stack_level']
-      if r.key?('upgrade_week')
-        week = r['upgrade_week']
+    response.keys.each do |host|
+      level = response[host]['stack_level']
+      if response[host].key?('upgrade_week')
+        week = response[host]['upgrade_week']
       elsif level == 'dev' or level == 'qa'
         week = 1
       elsif level == 'stage' or level == 'test'
@@ -270,7 +282,26 @@ private
   def get_puppet_facts
     endpoint = 'http://sulpuppet-db.stanford.edu:8080'
     client = PuppetDB::Client.new(server: endpoint)
-    client.request('facts').data
+    facts = {}
+    response = client.request('facts', ['=', 'name', 'stack_level'])
+    response.data.each do |r|
+      host = r['certname']
+      fact_name = r['name']
+      fact_value = r['value']
+      facts[host] = {} unless facts.key?(host)
+      facts[host][fact_name] = fact_value
+    end
+
+    response = client.request('facts', ['=', 'name', 'upgrade_week'])
+    response.data.each do |r|
+      host = r['certname']
+      fact_name = r['name']
+      fact_value = r['value']
+      facts[host] = {} unless facts.key?(host)
+      facts[host][fact_name] = value
+    end
+
+    facts
   end
 
   # Load a list of packages that we consider valid for auto-upgrading.  This

@@ -53,14 +53,14 @@ RSpec.describe Report, type: :model do
 
   describe "#load_schedule" do
     it "has output match" do
-      puppet_response = [
-        { 'certname' => 'dev.stanford.edu', 'stack_level' => 'dev'},
-        { 'certname' => 'qa.stanford.edu', 'stack_level' => 'qa'},
-        { 'certname' => 'stage.stanford.edu', 'stack_level' => 'stage'},
-        { 'certname' => 'test.stanford.edu', 'stack_level' => 'test'},
-        { 'certname' => 'prod.stanford.edu', 'stack_level' => 'prod'},
-        { 'certname' => 'week4.stanford.edu', 'upgrade_week' => 4}
-      ]
+      puppet_response = {
+        'dev.stanford.edu'   => { 'stack_level' => 'dev' },
+        'qa.stanford.edu'    => { 'stack_level' => 'qa' },
+        'stage.stanford.edu' => { 'stack_level' => 'stage' },
+        'test.stanford.edu'  => { 'stack_level' => 'test' },
+        'prod.stanford.edu'  => { 'stack_level' => 'prod' },
+        'week4.stanford.edu' => { 'upgrade_week' => 4, 'stack_level' => 'prod' },
+      }
       report = described_class.new
       allow(report).to receive(:get_puppet_facts).and_return(puppet_response)
       schedule = report.load_puppet_schedule
